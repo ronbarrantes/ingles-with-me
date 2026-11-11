@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { isDeckPath, TabBar } from "#/components/TabBar";
 import { t } from "#/i18n";
 import { warmUpSpeech } from "#/lib/speech";
+import { THEME_SCRIPT } from "#/lib/theme";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -80,8 +81,13 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="es">
+		<html lang="es" suppressHydrationWarning>
 			<head>
+				{/* Apply the saved theme before the first paint (no flash). */}
+				<script
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: static inline script
+					dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }}
+				/>
 				<HeadContent />
 			</head>
 			<body>

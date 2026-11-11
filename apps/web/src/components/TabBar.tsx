@@ -30,7 +30,7 @@ export const isDeckPath = (p: string) =>
 export function TabBar() {
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	return (
-		<nav className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-ink bg-paper dark:border-t dark:border-line pb-[env(safe-area-inset-bottom)]">
+		<nav className="fixed inset-x-0 bottom-0 z-20 bg-paper pb-[env(safe-area-inset-bottom)] [border-top:var(--bar-width)_solid_var(--bar-line)]">
 			<ul className="mx-auto grid max-w-md grid-cols-3">
 				{tabs.map(({ to, label, Icon, match }) => {
 					const on = match(path);
