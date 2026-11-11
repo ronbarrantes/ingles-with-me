@@ -3,7 +3,7 @@ import type { Word } from "#/data/words";
 import { t } from "#/i18n";
 import { speak } from "#/lib/speech";
 import { actions, type Direction, useStore } from "#/lib/store";
-import { BookmarkIcon, SpeakerIcon, StarIcon } from "./icons";
+import { BookmarkIcon, FlipIcon, SpeakerIcon, StarIcon } from "./icons";
 import { hasPicture, Picture, Sentence } from "./Picture";
 
 interface Props {
@@ -11,6 +11,8 @@ interface Props {
 	direction: Direction;
 	flipped: boolean;
 	onFlip: () => void;
+	/** Nudge the card once so it is obvious it turns. */
+	peek?: boolean;
 }
 
 /**
@@ -18,7 +20,13 @@ interface Props {
  * Back: picture + word + example. Spanish stays hidden behind a tap.
  * Parents should pass `key={word.id}` so the Spanish panel resets.
  */
-export function Flashcard({ word, direction, flipped, onFlip }: Props) {
+export function Flashcard({
+	word,
+	direction,
+	flipped,
+	onFlip,
+	peek = false,
+}: Props) {
 	const state = useStore();
 	const [showEs, setShowEs] = useState(false);
 	const favorite = state.favorites.includes(word.id);
@@ -61,9 +69,11 @@ export function Flashcard({ word, direction, flipped, onFlip }: Props) {
 				type="button"
 				onClick={flip}
 				aria-label={t.card.flip}
-				className="flip-scene block h-48 w-full px-5 text-left"
+				className="flip-scene relative block h-48 w-full px-5 text-left md:h-60"
 			>
-				<div className={`flip-inner ${flipped ? "is-flipped" : ""}`}>
+				<div
+					className={`flip-inner ${flipped ? "is-flipped" : ""} ${peek ? "peek" : ""}`}
+				>
 					<div className="flip-face">
 						{reverse ? (
 							hasPicture(word) ? (
@@ -81,9 +91,6 @@ export function Flashcard({ word, direction, flipped, onFlip }: Props) {
 								{word.en}
 							</p>
 						)}
-						<p className="absolute bottom-3 text-xs text-muted">
-							{t.card.flip}
-						</p>
 					</div>
 					<div className="flip-face flip-back gap-4">
 						<Picture word={word} />
@@ -95,6 +102,7 @@ export function Flashcard({ word, direction, flipped, onFlip }: Props) {
 						</p>
 					</div>
 				</div>
+				<FlipIcon className="absolute right-3 bottom-2 h-5 w-5 text-muted" />
 			</button>
 
 			<div className="flex gap-2 px-3 pb-3">
@@ -103,7 +111,7 @@ export function Flashcard({ word, direction, flipped, onFlip }: Props) {
 					disabled={!answerVisible}
 					style={{ visibility: answerVisible ? "visible" : "hidden" }}
 					onClick={() => speak(word.en)}
-					className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-ink text-paper disabled:opacity-30"
+					className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-ink disabled:opacity-30"
 				>
 					<SpeakerIcon />
 					<span className="font-bold">{t.card.listen}</span>
@@ -162,7 +170,7 @@ function IconToggle({
 			aria-pressed={on}
 			title={label}
 			onClick={onClick}
-			className={`grid h-10 w-10 place-items-center rounded-full ${on ? "text-accent" : "text-muted"}`}
+			className={`grid h-10 w-10 place-items-center rounded-sm ${on ? "text-accent" : "text-muted"}`}
 		>
 			{children}
 		</button>

@@ -22,7 +22,7 @@ export const Route = createRootRoute({
 				name: "description",
 				content: "Aprende inglés con dibujos, como un niño.",
 			},
-			{ name: "theme-color", content: "#f4eee2" },
+			{ name: "theme-color", content: "#f7f7f5" },
 			{ name: "apple-mobile-web-app-capable", content: "yes" },
 			{ name: "apple-mobile-web-app-title", content: t.appName },
 		],
@@ -70,7 +70,7 @@ function RootLayout() {
 
 	return (
 		<>
-			<main className="mx-auto max-w-md px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-24">
+			<main className="mx-auto max-w-md px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-24 md:max-w-xl md:pt-24 md:pb-12">
 				<Outlet />
 			</main>
 			<BottomNav />

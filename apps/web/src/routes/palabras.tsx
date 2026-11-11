@@ -60,7 +60,7 @@ function Words() {
 						type="button"
 						aria-pressed={filter === key}
 						onClick={() => setFilter(key)}
-						className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-bold ${filter === key ? "border-ink bg-ink text-paper" : "border-line text-muted"}`}
+						className={`shrink-0 rounded-sm border px-3.5 py-1.5 text-sm font-bold ${filter === key ? "border-ink bg-ink text-paper" : "border-line text-muted"}`}
 					>
 						{label}
 					</button>
@@ -127,13 +127,13 @@ function WordSheet({ word, onClose }: { word: Word; onClose: () => void }) {
 				onClick={onClose}
 				className="absolute inset-0 bg-ink/40"
 			/>
-			<div className="relative w-full max-w-md rounded-t-3xl bg-paper p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+			<div className="relative w-full max-w-md rounded-t-sm bg-paper p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
 				<div className="mb-2 flex justify-end">
 					<button
 						type="button"
 						onClick={onClose}
 						aria-label={t.words.close}
-						className="grid h-10 w-10 place-items-center rounded-full text-muted"
+						className="grid h-10 w-10 place-items-center rounded-sm text-muted"
 					>
 						<CloseIcon />
 					</button>

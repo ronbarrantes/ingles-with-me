@@ -86,7 +86,7 @@ function Review() {
 						setDone(false);
 						setDeck([...current]);
 					}}
-					className="h-14 w-full rounded-xl bg-accent font-bold text-on-accent"
+					className="h-13 w-full rounded-sm bg-ink font-bold text-paper"
 				>
 					{t.review.start} ({current.length})
 				</button>

@@ -7,7 +7,6 @@ const es = {
 	appName: "Inglés With Me",
 	nav: { learn: "Aprender", words: "Palabras", review: "Repasar" },
 	progress: "{n} de {total} aprendidas",
-	direction: { word: "Palabra → dibujo", picture: "Dibujo → palabra" },
 	card: {
 		flip: "Toca para voltear",
 		listen: "Escuchar",
@@ -19,9 +18,12 @@ const es = {
 		mark: "Marcar para repasar",
 	},
 	grade: { again: "Otra vez", know: "La sé" },
+	shortcuts: "Espacio: voltear · ←: otra vez · →: la sé · S: escuchar",
 	learn: {
 		allDone: "¡Viste las {total} palabras!",
 		allDoneHint: "Sigue repasando para no olvidarlas.",
+		categoryDone: "Ya viste todas las palabras de «{category}».",
+		all: "Todas",
 		sessionDone: "¡Bien hecho!",
 		sessionDoneHint: "Viste {n} palabras nuevas.",
 		more: "Seguir con más palabras",
