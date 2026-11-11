@@ -1,11 +1,11 @@
 // Offline support: pages network-first, built assets cache-first,
 // everything else stale-while-revalidate. Bump VERSION to drop old caches.
-const VERSION = "v5";
+const VERSION = "v6";
 const CACHE = `iwm-${VERSION}`;
 const GROUPS = ["todas", "personas", "casa", "mundo", "acciones", "describir", "clave"];
 const LISTS = ["due", "marked", "favorites"];
 const PAGES = ["/", "/palabras", "/repasar", ...GROUPS.map((g) => `/aprender/${g}`), ...LISTS.map((l) => `/repasar/${l}`)];
-const STATIC = ["/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
+const STATIC = ["/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/icon-maskable-512.png", "/apple-touch-icon.png", "/favicon-32.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
