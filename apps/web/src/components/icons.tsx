@@ -79,12 +79,6 @@ export const FlipIcon = ({ filled: _, ...p }: P) => (
 	</svg>
 );
 
-export const ChevronIcon = ({ filled: _, ...p }: P) => (
-	<svg aria-hidden="true" {...base(p)}>
-		<path d="m9 5 7 7-7 7" />
-	</svg>
-);
-
 export const BackIcon = ({ filled: _, ...p }: P) => (
 	<svg aria-hidden="true" {...base(p)}>
 		<path d="m15 5-7 7 7 7" />

@@ -29,7 +29,7 @@ function Study() {
 		if (hydrated && deck === null) setDeck(dealNew(state, group));
 	}, [hydrated, deck, state, group]);
 
-	const name = group === "todas" ? t.learn.all : t.groups[group].name;
+	const name = group === "todas" ? t.learn.all : t.groups[group];
 	const due = CORE_WORDS.filter((w) => isDue(state, w.id)).length;
 	const empty = deck !== null && deck.length === 0;
 

@@ -36,7 +36,7 @@ function Words() {
 	const chips: [Filter, string][] = [
 		["all", t.words.all],
 		["favorites", t.words.favorites],
-		...GROUPS.map((g) => [g.id, t.groups[g.id].name] as [Filter, string]),
+		...GROUPS.map((g) => [g.id, t.groups[g.id]] as [Filter, string]),
 		["bonus", t.categories.bonus],
 	];
 
