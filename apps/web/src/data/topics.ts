@@ -32,6 +32,17 @@ export const isTopic = (s: string): s is TopicId =>
 export const wordsIn = (t: TopicId): Word[] =>
 	t === "todas" ? [...CORE_WORDS] : CORE_WORDS.filter((w) => w.group === t);
 
+/** A few words shown under each topic card, as a taste of what's inside. */
+export const TOPIC_SAMPLES: Record<TopicId, string[]> = {
+	todas: ["dog", "house", "happy", "eat"],
+	personas: ["mother", "friend", "hand", "happy"],
+	casa: ["water", "bread", "bed", "key"],
+	mundo: ["sun", "dog", "city", "money"],
+	acciones: ["eat", "run", "sleep", "read"],
+	describir: ["big", "red", "hot", "today"],
+	clave: ["what", "where", "and", "because"],
+};
+
 /** Color for a single word (its group's color). */
 export const colorOf = (w: Word) =>
 	w.group ? TOPIC_COLOR[w.group] : TOPIC_COLOR.todas;

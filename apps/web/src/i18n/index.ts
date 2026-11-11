@@ -12,6 +12,15 @@ const es = {
 		start: "Toca para empezar →",
 		resume: "Seguir · {n} de {total} →",
 		all: "Todas",
+		hints: {
+			todas: "Palabras al azar de todos los temas",
+			personas: "Gente, cuerpo y sentimientos",
+			casa: "Comida y cosas de la casa",
+			mundo: "Lugares, naturaleza y trabajo",
+			acciones: "Cosas que hacemos",
+			describir: "Cómo es, cuántos y cuándo",
+			clave: "Para preguntar y unir ideas",
+		},
 	},
 	deck: {
 		back: "Volver",
