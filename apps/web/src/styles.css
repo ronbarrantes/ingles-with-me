@@ -9,11 +9,14 @@
 	--line: #dcd8cf;
 	--accent: #e4572e;
 	--on-accent: #ffffff;
+	--bar-line: var(--ink);
+	--bar-width: 2px;
 	color-scheme: light;
 }
 
+/* Dark: follows the system unless the user picked light; or forced. */
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root:not([data-theme="light"]) {
 		--paper: #141414;
 		--card: #1e1e1e;
 		--ink: #f2f0ea;
@@ -21,8 +24,22 @@
 		--line: #3a3833;
 		--accent: #ff7a52;
 		--on-accent: #141414;
+		--bar-line: var(--line);
+		--bar-width: 1px;
 		color-scheme: dark;
 	}
+}
+:root[data-theme="dark"] {
+	--paper: #141414;
+	--card: #1e1e1e;
+	--ink: #f2f0ea;
+	--muted: #a19d95;
+	--line: #3a3833;
+	--accent: #ff7a52;
+	--on-accent: #141414;
+	--bar-line: var(--line);
+	--bar-width: 1px;
+	color-scheme: dark;
 }
 
 @theme inline {

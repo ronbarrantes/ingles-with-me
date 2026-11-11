@@ -11,7 +11,6 @@ const es = {
 		title: "¿Qué vamos\na aprender?",
 		start: "Toca para empezar →",
 		resume: "Seguir · {n} de {total} →",
-		swipeHint: "Desliza para ver más",
 		all: "Todas",
 	},
 	deck: {

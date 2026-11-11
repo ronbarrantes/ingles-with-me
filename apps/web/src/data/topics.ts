@@ -10,7 +10,7 @@ export const TOPIC_COLOR: Record<TopicId, string> = {
 	todas: "#2B59C3",
 	personas: "#E4572E",
 	casa: "#F3A712",
-	mundo: "#29335C",
+	mundo: "#34408A",
 	acciones: "#3BB273",
 	describir: "#7768AE",
 	clave: "#1B998B",
