@@ -2,6 +2,7 @@
 // word a stop. Huge type, flat color, a route map as progress.
 
 import { useState } from "react";
+import { Pic } from "#/data/pics";
 import { speak } from "#/lib/speech";
 import {
 	PICKS,
@@ -160,7 +161,9 @@ function Ride({ pick, onBack }: { pick: Pick; onBack: () => void }) {
 						</button>
 						{open ? (
 							<div className="mt-6 flex items-center gap-4 border-4 border-black p-4">
-								<span className="text-6xl">{w.pic || "💬"}</span>
+								<span className="text-6xl">
+									{w.pic || <Pic id={w.id} className="h-16 w-16" />}
+								</span>
 								<span className="text-lg font-bold">
 									{(() => {
 										const [b, h, a] = splitExample(w);

@@ -2,6 +2,7 @@
 // topic by replying, then Sam shows pictures and you answer with chips.
 
 import { useEffect, useRef, useState } from "react";
+import { hasPic, Pic } from "#/data/pics";
 import type { Word } from "#/data/words";
 import { CORE_WORDS } from "#/data/words";
 import { speak } from "#/lib/speech";
@@ -9,7 +10,7 @@ import { PICKS, type Pick, type Screen, shuffle } from "./shared";
 
 type Msg =
 	| { from: "sam"; text: string }
-	| { from: "sam"; pic: string }
+	| { from: "sam"; pic: string; id: string }
 	| { from: "me"; text: string };
 
 const TEAL = "#0F766E";
@@ -58,8 +59,8 @@ export default function Chat({ start }: { start: Screen }) {
 		}
 		sam(
 			[
-				w.pic
-					? { from: "sam", pic: w.pic }
+				w.pic || hasPic(w.id)
+					? { from: "sam", pic: w.pic, id: w.id }
 					: {
 							from: "sam",
 							text: `“${w.example.replace(new RegExp(`\\b${w.en}\\b`, "i"), "____")}”`,
@@ -220,7 +221,7 @@ function Bubble({ msg }: { msg: Msg }) {
 	if ("pic" in msg) {
 		return (
 			<div className="self-start rounded-2xl rounded-bl-sm bg-white px-6 py-4 text-8xl">
-				{msg.pic}
+				{msg.pic || <Pic id={msg.id} className="h-24 w-24" />}
 			</div>
 		);
 	}

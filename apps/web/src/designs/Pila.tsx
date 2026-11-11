@@ -2,6 +2,7 @@
 // tap = flip. Picker is a snap carousel of big colored cards.
 
 import { useRef, useState } from "react";
+import { Pic } from "#/data/pics";
 import { speak } from "#/lib/speech";
 import {
 	PICKS,
@@ -189,7 +190,9 @@ function Deck({ pick, onBack }: { pick: Pick; onBack: () => void }) {
 					<Stamp show={dx < -30} text="OTRA VEZ" color="#E4572E" side="right" />
 					{flipped ? (
 						<>
-							<span className="text-[7rem] leading-none">{w.pic || "💬"}</span>
+							<span className="text-[7rem] leading-none">
+								{w.pic || <Pic id={w.id} className="h-36 w-36" />}
+							</span>
 							<span className="text-5xl font-extrabold">{w.en}</span>
 							<span className="text-center text-lg">
 								{before}

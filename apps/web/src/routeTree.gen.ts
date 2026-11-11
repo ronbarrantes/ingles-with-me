@@ -16,6 +16,7 @@ import { Route as RepasarRouteImport } from './routes/repasar'
 import { Route as AprenderGroupRouteImport } from './routes/aprender.$group'
 import { Route as DesignsIndexRouteImport } from './routes/designs.index'
 import { Route as DesignsIdRouteImport } from './routes/designs.$id'
+import { Route as DesignsPicsRouteImport } from './routes/designs.pics'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +53,11 @@ const DesignsIdRoute = DesignsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => DesignsRoute,
 } as any)
+const DesignsPicsRoute = DesignsPicsRouteImport.update({
+  id: '/pics',
+  path: '/pics',
+  getParentRoute: () => DesignsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/repasar': typeof RepasarRoute
   '/aprender/$group': typeof AprenderGroupRoute
   '/designs/$id': typeof DesignsIdRoute
+  '/designs/pics': typeof DesignsPicsRoute
   '/designs/': typeof DesignsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/repasar': typeof RepasarRoute
   '/aprender/$group': typeof AprenderGroupRoute
   '/designs/$id': typeof DesignsIdRoute
+  '/designs/pics': typeof DesignsPicsRoute
   '/designs': typeof DesignsIndexRoute
 }
 export interface FileRoutesById {
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/repasar': typeof RepasarRoute
   '/aprender/$group': typeof AprenderGroupRoute
   '/designs/$id': typeof DesignsIdRoute
+  '/designs/pics': typeof DesignsPicsRoute
   '/designs/': typeof DesignsIndexRoute
 }
 export interface FileRouteTypes {
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/repasar'
     | '/aprender/$group'
     | '/designs/$id'
+    | '/designs/pics'
     | '/designs/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/repasar'
     | '/aprender/$group'
     | '/designs/$id'
+    | '/designs/pics'
     | '/designs'
   id:
     | '__root__'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/repasar'
     | '/aprender/$group'
     | '/designs/$id'
+    | '/designs/pics'
     | '/designs/'
   fileRoutesById: FileRoutesById
 }
@@ -168,16 +180,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DesignsIdRouteImport
       parentRoute: typeof DesignsRoute
     }
+    '/designs/pics': {
+      id: '/designs/pics'
+      path: '/pics'
+      fullPath: '/designs/pics'
+      preLoaderRoute: typeof DesignsPicsRouteImport
+      parentRoute: typeof DesignsRoute
+    }
   }
 }
 
 interface DesignsRouteChildren {
   DesignsIdRoute: typeof DesignsIdRoute
+  DesignsPicsRoute: typeof DesignsPicsRoute
   DesignsIndexRoute: typeof DesignsIndexRoute
 }
 
 const DesignsRouteChildren: DesignsRouteChildren = {
   DesignsIdRoute: DesignsIdRoute,
+  DesignsPicsRoute: DesignsPicsRoute,
   DesignsIndexRoute: DesignsIndexRoute,
 }
 

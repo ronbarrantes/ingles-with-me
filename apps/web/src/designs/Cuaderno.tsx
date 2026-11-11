@@ -3,6 +3,7 @@
 // stickers collected at the top of the page.
 
 import { useState } from "react";
+import { Pic } from "#/data/pics";
 import { speak } from "#/lib/speech";
 import {
 	PICKS,
@@ -156,7 +157,7 @@ function Page({ pick, onBack }: { pick: Pick; onBack: () => void }) {
 					>
 						<span className="absolute -top-3 left-1/2 h-6 w-24 -translate-x-1/2 rotate-2 bg-[#F5E6A8]/80" />
 						<span className="grid h-52 place-items-center bg-[#EEF3F8] text-[7rem]">
-							{w.pic || "💭"}
+							{w.pic || <Pic id={w.id} className="h-40 w-40" />}
 						</span>
 						<span
 							className="block h-14 pt-1 text-center text-5xl"

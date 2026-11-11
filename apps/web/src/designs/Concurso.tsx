@@ -2,6 +2,7 @@
 // English word out of four. Points, streaks, chunky buttons.
 
 import { useMemo, useState } from "react";
+import { hasPic, Pic } from "#/data/pics";
 import { speak } from "#/lib/speech";
 import {
 	choicesFor,
@@ -163,6 +164,8 @@ function Game({ pick, onBack }: { pick: Pick; onBack: () => void }) {
 			>
 				{w.pic ? (
 					<span className="text-[7rem] leading-none">{w.pic}</span>
+				) : hasPic(w.id) ? (
+					<Pic id={w.id} className="h-40 w-40" />
 				) : (
 					<span
 						className="text-3xl"
