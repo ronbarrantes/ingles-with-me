@@ -1,22 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Flashcard } from "#/components/Flashcard";
-import { CheckIcon, CloseIcon, SearchIcon, StarIcon } from "#/components/icons";
-import { hasPic, Pic } from "#/data/pics";
-import { ALL_WORDS, GROUPS, type GroupId, type Word } from "#/data/words";
-import { t } from "#/i18n";
+import { Art, onColor } from "#/components/Art";
+import { Card } from "#/components/Card";
+import { CheckIcon, SearchIcon } from "#/components/icons";
+import { colorOf, TOPIC_COLOR, TOPIC_IDS, type TopicId } from "#/data/topics";
+import { ALL_WORDS, type Word } from "#/data/words";
+import { t, topicName } from "#/i18n";
+import { speak } from "#/lib/speech";
 import { isLearned, useStore } from "#/lib/store";
 
 export const Route = createFileRoute("/palabras")({ component: Words });
 
-type Filter = "all" | "favorites" | "bonus" | GroupId;
+type Filter = TopicId | "favorites" | "bonus";
 
 const normalize = (s: string) =>
 	s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
+/** Palabras: every word as a mini card. Tap one to open the full card. */
 function Words() {
 	const state = useStore();
-	const [filter, setFilter] = useState<Filter>("all");
+	const [filter, setFilter] = useState<Filter>("todas");
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState<Word | null>(null);
 
@@ -25,7 +28,7 @@ function Words() {
 		if (filter === "favorites" && !state.favorites.includes(w.id)) return false;
 		if (filter === "bonus" && !w.bonus) return false;
 		if (
-			filter !== "all" &&
+			filter !== "todas" &&
 			filter !== "favorites" &&
 			filter !== "bonus" &&
 			w.group !== filter
@@ -34,19 +37,22 @@ function Words() {
 		return !q || normalize(w.en).includes(q) || normalize(w.es).includes(q);
 	});
 
-	const chips: [Filter, string][] = [
-		["all", t.words.all],
-		["favorites", t.words.favorites],
-		...GROUPS.map((g) => [g.id, t.groups[g.id]] as [Filter, string]),
-		["bonus", t.categories.bonus],
+	const chips: { id: Filter; label: string; color: string }[] = [
+		...TOPIC_IDS.map((id) => ({
+			id,
+			label: topicName(id),
+			color: TOPIC_COLOR[id],
+		})),
+		{ id: "favorites", label: `★ ${t.review.favorites}`, color: "#E0A100" },
+		{ id: "bonus", label: t.words.bonus, color: "#111111" },
 	];
 
 	return (
-		<div className="space-y-4">
-			<h1 className="font-display text-3xl">{t.nav.words}</h1>
+		<div className="px-5 py-8">
+			<h1 className="px-1 text-5xl font-extrabold">{t.words.title}</h1>
 
-			<label className="flex h-12 items-center gap-2 rounded-xl border border-line bg-card px-3">
-				<SearchIcon className="text-muted" />
+			<label className="mt-5 flex h-12 items-center gap-2 border-2 border-ink bg-card px-3">
+				<SearchIcon className="h-5 w-5 opacity-60" />
 				<input
 					type="search"
 					value={query}
@@ -56,64 +62,81 @@ function Words() {
 				/>
 			</label>
 
-			<div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
-				{chips.map(([key, label]) => (
-					<button
-						key={key}
-						type="button"
-						aria-pressed={filter === key}
-						onClick={() => setFilter(key)}
-						className={`shrink-0 rounded-sm border px-3.5 py-1.5 text-sm font-bold ${filter === key ? "border-ink bg-ink text-paper" : "border-line text-muted"}`}
-					>
-						{label}
-					</button>
-				))}
+			<div className="-mx-5 mt-3 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
+				{chips.map((c) => {
+					const on = filter === c.id;
+					return (
+						<button
+							key={c.id}
+							type="button"
+							aria-pressed={on}
+							onClick={() => setFilter(c.id)}
+							className="h-9 shrink-0 border-2 px-3 text-sm font-bold"
+							style={
+								on
+									? {
+											background: c.color,
+											borderColor: c.color,
+											color: onColor(c.color),
+										}
+									: { borderColor: "var(--ink)" }
+							}
+						>
+							{c.label}
+						</button>
+					);
+				})}
 			</div>
 
 			{words.length === 0 ? (
-				<p className="py-10 text-center text-muted">{t.words.empty}</p>
+				<p className="py-12 text-center text-muted">{t.words.empty}</p>
 			) : (
-				<ul className="divide-y divide-line rounded-2xl border border-line bg-card">
+				<ul className="mt-4 grid grid-cols-3 gap-2.5">
 					{words.map((w) => (
 						<li key={w.id}>
 							<button
 								type="button"
 								onClick={() => setOpen(w)}
-								className="flex w-full items-center gap-3 px-4 py-2.5 text-left"
+								className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 border-2 border-ink bg-card p-2 transition-transform active:scale-95"
 							>
-								<span className="grid h-10 w-10 shrink-0 place-items-center text-2xl">
-									{w.pic ||
-										(hasPic(w.id) ? (
-											<Pic id={w.id} className="h-9 w-9" />
-										) : (
-											<span className="font-display text-xl text-muted">
-												{w.en[0]}
-											</span>
-										))}
-								</span>
-								<span className="flex-1 font-display text-xl">{w.en}</span>
-								{state.favorites.includes(w.id) && (
-									<StarIcon filled className="h-4 w-4 text-accent" />
-								)}
+								<span
+									className="absolute inset-x-0 top-0 h-1.5"
+									style={{ background: colorOf(w) }}
+								/>
 								{isLearned(state, w.id) && (
-									<span title={t.words.learned}>
-										<CheckIcon className="h-5 w-5 text-accent" />
-										<span className="sr-only">{t.words.learned}</span>
+									<CheckIcon
+										className="absolute top-2.5 right-1.5 h-4 w-4"
+										style={{ color: colorOf(w) }}
+									/>
+								)}
+								{state.favorites.includes(w.id) && (
+									<span className="absolute top-2 left-2 text-xs text-[#E0A100]">
+										★
 									</span>
 								)}
+								<Art word={w} size="md" />
+								<span className="text-center text-base leading-tight font-extrabold break-words">
+									{w.en}
+								</span>
 							</button>
 						</li>
 					))}
 				</ul>
 			)}
 
-			{open && <WordSheet word={open} onClose={() => setOpen(null)} />}
+			{open && <WordOverlay word={open} onClose={() => setOpen(null)} />}
 		</div>
 	);
 }
 
-function WordSheet({ word, onClose }: { word: Word; onClose: () => void }) {
+/** A full card over the list: tap to flip, like in the deck. */
+function WordOverlay({ word, onClose }: { word: Word; onClose: () => void }) {
 	const [flipped, setFlipped] = useState(false);
+	const color = colorOf(word);
+	const flip = () => {
+		if (!flipped) speak(word.en);
+		setFlipped((f) => !f);
+	};
 
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -126,30 +149,41 @@ function WordSheet({ word, onClose }: { word: Word; onClose: () => void }) {
 	}, [onClose]);
 
 	return (
-		<div className="fixed inset-0 z-30 flex items-end justify-center">
-			<button
-				type="button"
-				aria-label={t.words.close}
-				onClick={onClose}
-				className="absolute inset-0 bg-ink/40"
-			/>
-			<div className="relative w-full max-w-md rounded-t-sm bg-paper p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-				<div className="mb-2 flex justify-end">
+		<div className="fixed inset-0 z-30 flex flex-col bg-paper/95 p-5 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-[calc(1.25rem+env(safe-area-inset-bottom))] backdrop-blur-sm">
+			<div className="mx-auto flex w-full max-w-md flex-1 flex-col">
+				<div className="flex justify-end">
 					<button
 						type="button"
 						onClick={onClose}
+						className="grid h-10 w-10 place-items-center text-2xl"
 						aria-label={t.words.close}
-						className="grid h-10 w-10 place-items-center rounded-sm text-muted"
 					>
-						<CloseIcon />
+						✕
 					</button>
 				</div>
-				<Flashcard
-					key={word.id}
-					word={word}
-					flipped={flipped}
-					onFlip={() => setFlipped((f) => !f)}
-				/>
+				{/* biome-ignore lint/a11y/useSemanticElements: holds its own buttons, so it can't be a <button> */}
+				<div
+					role="button"
+					tabIndex={0}
+					onClick={flip}
+					onKeyDown={(e) => {
+						if (e.key === "Enter" || e.key === " ") {
+							e.preventDefault();
+							flip();
+						}
+					}}
+					aria-label={t.deck.hint}
+					className="mt-2 flex-1 cursor-pointer outline-none"
+				>
+					<Card word={word} flipped={flipped} color={color} />
+				</div>
+				<button
+					type="button"
+					onClick={() => speak(word.en)}
+					className="mt-5 h-16 border-2 border-ink text-xl font-bold"
+				>
+					🔊 {t.deck.listen}
+				</button>
 			</div>
 		</div>
 	);

@@ -6,7 +6,7 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { BottomNav } from "#/components/BottomNav";
+import { isDeckPath, TabBar } from "#/components/TabBar";
 import { t } from "#/i18n";
 import { warmUpSpeech } from "#/lib/speech";
 import appCss from "../styles.css?url";
@@ -24,7 +24,7 @@ export const Route = createRootRoute({
 				name: "description",
 				content: "Aprende inglés con dibujos, como un niño.",
 			},
-			{ name: "theme-color", content: "#f7f7f5" },
+			{ name: "theme-color", content: "#f6f4ef" },
 			{ name: "apple-mobile-web-app-capable", content: "yes" },
 			{ name: "apple-mobile-web-app-title", content: t.appName },
 		],
@@ -41,7 +41,7 @@ export const Route = createRootRoute({
 			},
 			{
 				rel: "stylesheet",
-				href: "https://fonts.googleapis.com/css2?family=Lexend:wght@400;700&family=Young+Serif&display=swap",
+				href: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap",
 			},
 		],
 	}),
@@ -75,16 +75,15 @@ function RootLayout() {
 		}
 	}, []);
 
-	// The /designs prototypes are full-screen and bring their own chrome.
 	const path = useRouterState({ select: (s) => s.location.pathname });
-	if (path.startsWith("/designs")) return <Outlet />;
+	const deck = isDeckPath(path);
 
 	return (
 		<>
-			<main className="mx-auto max-w-md px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-24 md:max-w-xl md:pt-24 md:pb-12">
+			<main className={`mx-auto max-w-md ${deck ? "" : "pb-24"}`}>
 				<Outlet />
 			</main>
-			<BottomNav />
+			{!deck && <TabBar />}
 		</>
 	);
 }

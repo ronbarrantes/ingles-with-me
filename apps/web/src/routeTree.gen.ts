@@ -10,22 +10,15 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DesignsRouteImport } from './routes/designs'
 import { Route as PalabrasRouteImport } from './routes/palabras'
 import { Route as RepasarRouteImport } from './routes/repasar'
 import { Route as AprenderGroupRouteImport } from './routes/aprender.$group'
-import { Route as DesignsIndexRouteImport } from './routes/designs.index'
-import { Route as DesignsIdRouteImport } from './routes/designs.$id'
-import { Route as DesignsPicsRouteImport } from './routes/designs.pics'
+import { Route as RepasarIndexRouteImport } from './routes/repasar.index'
+import { Route as RepasarListRouteImport } from './routes/repasar.$list'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DesignsRoute = DesignsRouteImport.update({
-  id: '/designs',
-  path: '/designs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PalabrasRoute = PalabrasRouteImport.update({
@@ -43,89 +36,66 @@ const AprenderGroupRoute = AprenderGroupRouteImport.update({
   path: '/aprender/$group',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DesignsIndexRoute = DesignsIndexRouteImport.update({
+const RepasarIndexRoute = RepasarIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => DesignsRoute,
+  getParentRoute: () => RepasarRoute,
 } as any)
-const DesignsIdRoute = DesignsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => DesignsRoute,
-} as any)
-const DesignsPicsRoute = DesignsPicsRouteImport.update({
-  id: '/pics',
-  path: '/pics',
-  getParentRoute: () => DesignsRoute,
+const RepasarListRoute = RepasarListRouteImport.update({
+  id: '/$list',
+  path: '/$list',
+  getParentRoute: () => RepasarRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/designs': typeof DesignsRouteWithChildren
   '/palabras': typeof PalabrasRoute
-  '/repasar': typeof RepasarRoute
+  '/repasar': typeof RepasarRouteWithChildren
   '/aprender/$group': typeof AprenderGroupRoute
-  '/designs/$id': typeof DesignsIdRoute
-  '/designs/pics': typeof DesignsPicsRoute
-  '/designs/': typeof DesignsIndexRoute
+  '/repasar/$list': typeof RepasarListRoute
+  '/repasar/': typeof RepasarIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/palabras': typeof PalabrasRoute
-  '/repasar': typeof RepasarRoute
   '/aprender/$group': typeof AprenderGroupRoute
-  '/designs/$id': typeof DesignsIdRoute
-  '/designs/pics': typeof DesignsPicsRoute
-  '/designs': typeof DesignsIndexRoute
+  '/repasar/$list': typeof RepasarListRoute
+  '/repasar': typeof RepasarIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/designs': typeof DesignsRouteWithChildren
   '/palabras': typeof PalabrasRoute
-  '/repasar': typeof RepasarRoute
+  '/repasar': typeof RepasarRouteWithChildren
   '/aprender/$group': typeof AprenderGroupRoute
-  '/designs/$id': typeof DesignsIdRoute
-  '/designs/pics': typeof DesignsPicsRoute
-  '/designs/': typeof DesignsIndexRoute
+  '/repasar/$list': typeof RepasarListRoute
+  '/repasar/': typeof RepasarIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/designs'
     | '/palabras'
     | '/repasar'
     | '/aprender/$group'
-    | '/designs/$id'
-    | '/designs/pics'
-    | '/designs/'
+    | '/repasar/$list'
+    | '/repasar/'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/palabras'
-    | '/repasar'
-    | '/aprender/$group'
-    | '/designs/$id'
-    | '/designs/pics'
-    | '/designs'
+  to: '/' | '/palabras' | '/aprender/$group' | '/repasar/$list' | '/repasar'
   id:
     | '__root__'
     | '/'
-    | '/designs'
     | '/palabras'
     | '/repasar'
     | '/aprender/$group'
-    | '/designs/$id'
-    | '/designs/pics'
-    | '/designs/'
+    | '/repasar/$list'
+    | '/repasar/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DesignsRoute: typeof DesignsRouteWithChildren
   PalabrasRoute: typeof PalabrasRoute
-  RepasarRoute: typeof RepasarRoute
+  RepasarRoute: typeof RepasarRouteWithChildren
   AprenderGroupRoute: typeof AprenderGroupRoute
 }
 
@@ -136,13 +106,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/designs': {
-      id: '/designs'
-      path: '/designs'
-      fullPath: '/designs'
-      preLoaderRoute: typeof DesignsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/palabras': {
@@ -166,50 +129,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AprenderGroupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/designs/': {
-      id: '/designs/'
+    '/repasar/': {
+      id: '/repasar/'
       path: '/'
-      fullPath: '/designs/'
-      preLoaderRoute: typeof DesignsIndexRouteImport
-      parentRoute: typeof DesignsRoute
+      fullPath: '/repasar/'
+      preLoaderRoute: typeof RepasarIndexRouteImport
+      parentRoute: typeof RepasarRoute
     }
-    '/designs/$id': {
-      id: '/designs/$id'
-      path: '/$id'
-      fullPath: '/designs/$id'
-      preLoaderRoute: typeof DesignsIdRouteImport
-      parentRoute: typeof DesignsRoute
-    }
-    '/designs/pics': {
-      id: '/designs/pics'
-      path: '/pics'
-      fullPath: '/designs/pics'
-      preLoaderRoute: typeof DesignsPicsRouteImport
-      parentRoute: typeof DesignsRoute
+    '/repasar/$list': {
+      id: '/repasar/$list'
+      path: '/$list'
+      fullPath: '/repasar/$list'
+      preLoaderRoute: typeof RepasarListRouteImport
+      parentRoute: typeof RepasarRoute
     }
   }
 }
 
-interface DesignsRouteChildren {
-  DesignsIdRoute: typeof DesignsIdRoute
-  DesignsPicsRoute: typeof DesignsPicsRoute
-  DesignsIndexRoute: typeof DesignsIndexRoute
+interface RepasarRouteChildren {
+  RepasarListRoute: typeof RepasarListRoute
+  RepasarIndexRoute: typeof RepasarIndexRoute
 }
 
-const DesignsRouteChildren: DesignsRouteChildren = {
-  DesignsIdRoute: DesignsIdRoute,
-  DesignsPicsRoute: DesignsPicsRoute,
-  DesignsIndexRoute: DesignsIndexRoute,
+const RepasarRouteChildren: RepasarRouteChildren = {
+  RepasarListRoute: RepasarListRoute,
+  RepasarIndexRoute: RepasarIndexRoute,
 }
 
-const DesignsRouteWithChildren =
-  DesignsRoute._addFileChildren(DesignsRouteChildren)
+const RepasarRouteWithChildren =
+  RepasarRoute._addFileChildren(RepasarRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DesignsRoute: DesignsRouteWithChildren,
   PalabrasRoute: PalabrasRoute,
-  RepasarRoute: RepasarRoute,
+  RepasarRoute: RepasarRouteWithChildren,
   AprenderGroupRoute: AprenderGroupRoute,
 }
 export const routeTree = rootRouteImport
