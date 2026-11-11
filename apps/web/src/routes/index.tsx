@@ -29,12 +29,12 @@ function Topics() {
 	}, [hydrated, state.lastTopic]);
 
 	return (
-		<div className="flex min-h-[calc(100dvh-5rem)] flex-col justify-center gap-6 py-8">
+		<div className="flex flex-col gap-5 pt-[calc(1.75rem+env(safe-area-inset-top))] pb-6">
 			<div className="px-6">
 				<p className="text-sm font-semibold tracking-widest uppercase opacity-50">
 					{t.appName}
 				</p>
-				<h1 className="mt-1 text-5xl leading-[0.95] font-extrabold whitespace-pre-line">
+				<h1 className="mt-1 text-[2.75rem] leading-[0.95] font-extrabold whitespace-pre-line">
 					{t.learn.title}
 				</h1>
 				<p className="mt-3 text-sm text-muted">
@@ -55,12 +55,12 @@ function Topics() {
 							to="/aprender/$group"
 							params={{ group: id }}
 							data-topic={id}
-							className="flex h-[50dvh] max-h-[26rem] w-[72vw] max-w-72 shrink-0 snap-center flex-col justify-between p-6 transition-transform active:scale-[0.97]"
+							className="flex h-[min(42dvh,22rem)] w-[68vw] max-w-64 shrink-0 snap-center flex-col justify-between p-6 transition-transform active:scale-[0.97]"
 							style={{ background: color, color: onColor(color) }}
 						>
-							<span className="text-8xl">{TOPIC_EMOJI[id]}</span>
+							<span className="text-7xl">{TOPIC_EMOJI[id]}</span>
 							<span>
-								<span className="block text-4xl leading-none font-extrabold">
+								<span className="block text-[2.1rem] leading-none font-extrabold">
 									{topicName(id)}
 								</span>
 								<span className="mt-3 block text-sm font-semibold opacity-85">

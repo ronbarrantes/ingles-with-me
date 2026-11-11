@@ -1,6 +1,6 @@
 export const REVIEW_LISTS = {
-	due: { color: "#111111", emoji: "⏰" },
-	marked: { color: "#29335C", emoji: "🔖" },
+	due: { color: "#E4572E", emoji: "⏰" },
+	marked: { color: "#2B59C3", emoji: "🔖" },
 	favorites: { color: "#E0A100", emoji: "★" },
 } as const;
 
