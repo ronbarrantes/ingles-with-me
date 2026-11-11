@@ -78,3 +78,15 @@ export const FlipIcon = ({ filled: _, ...p }: P) => (
 		<path d="M20 4v5h-5" />
 	</svg>
 );
+
+export const ChevronIcon = ({ filled: _, ...p }: P) => (
+	<svg aria-hidden="true" {...base(p)}>
+		<path d="m9 5 7 7-7 7" />
+	</svg>
+);
+
+export const BackIcon = ({ filled: _, ...p }: P) => (
+	<svg aria-hidden="true" {...base(p)}>
+		<path d="m15 5-7 7 7 7" />
+	</svg>
+);

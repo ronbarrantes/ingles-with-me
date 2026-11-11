@@ -1,7 +1,6 @@
 // Progress saved on the device (localStorage). No accounts.
 
 import { useSyncExternalStore } from "react";
-import type { CategoryId } from "#/data/words";
 
 export type Direction = "word" | "picture";
 
@@ -16,8 +15,6 @@ export interface State {
 	srs: Record<string, Srs>;
 	favorites: string[];
 	marked: string[];
-	/** Category chosen on Aprender. */
-	category: CategoryId | "all";
 }
 
 const KEY = "iwm:v1";
@@ -31,7 +28,6 @@ const initial: State = {
 	srs: {},
 	favorites: [],
 	marked: [],
-	category: "all",
 };
 
 let state: State = initial;
@@ -93,9 +89,6 @@ export const actions = {
 	},
 	toggleMarked(id: string) {
 		set({ ...state, marked: toggle(state.marked, id) });
-	},
-	setCategory(category: CategoryId | "all") {
-		set({ ...state, category });
 	},
 	grade(id: string, knew: boolean) {
 		const prev = state.srs[id] ?? { box: 0, due: 0, seen: 0 };

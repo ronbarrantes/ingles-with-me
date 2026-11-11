@@ -1,7 +1,7 @@
 // Interface text lives here so other UI languages can be added later.
 // Only the interface is translated; the words being learned stay in English.
 
-import type { CategoryId, Pos } from "#/data/words";
+import type { CategoryId, GroupId, Pos } from "#/data/words";
 
 const es = {
 	appName: "Inglés With Me",
@@ -23,7 +23,10 @@ const es = {
 		allDone: "¡Viste las {total} palabras!",
 		allDoneHint: "Sigue repasando para no olvidarlas.",
 		categoryDone: "Ya viste todas las palabras de «{category}».",
+		categories: "Categorías",
+		back: "Categorías",
 		all: "Todas",
+		allHint: "Palabras al azar de todo",
 		sessionDone: "¡Bien hecho!",
 		sessionDoneHint: "Viste {n} palabras nuevas.",
 		more: "Seguir con más palabras",
@@ -66,6 +69,14 @@ const es = {
 		conectores: "Palabras pequeñas",
 		bonus: "Ya las sabes",
 	} satisfies Record<CategoryId, string>,
+	groups: {
+		personas: { name: "Personas", hint: "Gente, cuerpo y sentimientos" },
+		casa: { name: "Comida y casa", hint: "Lo de todos los días" },
+		mundo: { name: "El mundo", hint: "Lugares, naturaleza y trabajo" },
+		acciones: { name: "Acciones", hint: "Cosas que hacemos" },
+		describir: { name: "Describir", hint: "Cómo es, cuántos y cuándo" },
+		clave: { name: "Palabras clave", hint: "Para preguntar y unir ideas" },
+	} satisfies Record<GroupId, { name: string; hint: string }>,
 	pos: {
 		n: "sustantivo",
 		v: "verbo",

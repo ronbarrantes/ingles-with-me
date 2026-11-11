@@ -41,6 +41,8 @@ export interface Word {
 	example: string;
 	pos: Pos;
 	category: CategoryId;
+	/** The bigger group shown in the app; null for bonus cognates. */
+	group: GroupId | null;
 	cognate: boolean;
 	/** Bonus cognates are browsable but don't count toward the core list. */
 	bonus: boolean;
@@ -448,6 +450,27 @@ export const CATEGORY_ORDER: CategoryId[] = [
 	"bonus",
 ];
 
+/** The six groups the app shows; each bundles a few categories. */
+export type GroupId =
+	| "personas"
+	| "casa"
+	| "mundo"
+	| "acciones"
+	| "describir"
+	| "clave";
+
+export const GROUPS: { id: GroupId; categories: CategoryId[] }[] = [
+	{ id: "personas", categories: ["personas", "cuerpo", "sentimientos"] },
+	{ id: "casa", categories: ["comida", "casa"] },
+	{ id: "mundo", categories: ["lugares", "mundo", "trabajo"] },
+	{ id: "acciones", categories: ["acciones"] },
+	{ id: "describir", categories: ["describir", "numeros", "tiempo"] },
+	{ id: "clave", categories: ["preguntar", "base", "conectores"] },
+];
+
+const groupOf = (c: CategoryId): GroupId | null =>
+	GROUPS.find((g) => g.categories.includes(c))?.id ?? null;
+
 const slug = (s: string) => s.toLowerCase().replace(/\s+/g, "-");
 
 const all: Word[] = [];
@@ -466,6 +489,7 @@ for (const category of CATEGORY_ORDER) {
 			example,
 			pos,
 			category,
+			group: groupOf(category),
 			cognate: Boolean(cognate),
 			bonus,
 		});
