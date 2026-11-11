@@ -71,3 +71,10 @@ export const CheckIcon = ({ filled: _, ...p }: P) => (
 		<path d="m5 12.5 4.5 4.5L19 7.5" />
 	</svg>
 );
+
+export const FlipIcon = ({ filled: _, ...p }: P) => (
+	<svg aria-hidden="true" {...base(p)}>
+		<path d="M20 12a8 8 0 1 1-2.6-5.9" />
+		<path d="M20 4v5h-5" />
+	</svg>
+);

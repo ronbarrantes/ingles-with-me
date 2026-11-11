@@ -1,6 +1,6 @@
 // Offline support: pages network-first, built assets cache-first,
 // everything else stale-while-revalidate. Bump VERSION to drop old caches.
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = `iwm-${VERSION}`;
 const PAGES = ["/", "/palabras", "/repasar"];
 const STATIC = ["/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];

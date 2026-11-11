@@ -1,26 +1,27 @@
 @import "tailwindcss";
 
-/* Warm paper, ink, one terracotta accent. Flat: borders, no shadows. */
+/* Quiet Americana: neutral grays, navy ink, a little flag red. Flat and
+   nearly square: borders, no shadows, 2px corners. */
 :root {
-	--paper: #f4eee2;
-	--card: #fbf8f1;
-	--ink: #24201b;
-	--muted: #6f675b;
-	--line: #ddd3c1;
-	--accent: #b9512d;
-	--on-accent: #fff8ef;
+	--paper: #f7f7f5;
+	--card: #ffffff;
+	--ink: #1c2541;
+	--muted: #687083;
+	--line: #dedfe3;
+	--accent: #b22234;
+	--on-accent: #ffffff;
 	color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--paper: #1b1916;
-		--card: #24211d;
-		--ink: #f1eadc;
-		--muted: #a59c8d;
-		--line: #3a352e;
-		--accent: #e07a52;
-		--on-accent: #1b1916;
+		--paper: #12151f;
+		--card: #191d2a;
+		--ink: #e8eaf0;
+		--muted: #949aaa;
+		--line: #2c3142;
+		--accent: #e0525f;
+		--on-accent: #12151f;
 		color-scheme: dark;
 	}
 }
@@ -35,6 +36,13 @@
 	--color-on-accent: var(--on-accent);
 	--font-sans: "Lexend", ui-sans-serif, system-ui, sans-serif;
 	--font-display: "Young Serif", ui-serif, Georgia, serif;
+	--radius-xs: 1px;
+	--radius-sm: 2px;
+	--radius-md: 2px;
+	--radius-lg: 2px;
+	--radius-xl: 2px;
+	--radius-2xl: 3px;
+	--radius-3xl: 3px;
 }
 
 html,
@@ -89,5 +97,27 @@ button {
 @media (prefers-reduced-motion: reduce) {
 	.flip-inner {
 		transition: none;
+	}
+}
+
+/* A small nudge on the first card so it's clear it turns. */
+@keyframes peek {
+	0%,
+	100% {
+		transform: rotateY(0);
+	}
+	40% {
+		transform: rotateY(-22deg);
+	}
+	70% {
+		transform: rotateY(8deg);
+	}
+}
+.flip-inner.peek:not(.is-flipped) {
+	animation: peek 0.9s ease-in-out 0.6s 1;
+}
+@media (prefers-reduced-motion: reduce) {
+	.flip-inner.peek {
+		animation: none;
 	}
 }
