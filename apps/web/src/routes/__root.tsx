@@ -1,54 +1,79 @@
-import { TanStackDevtools } from "@tanstack/react-devtools";
-import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-
+import {
+	createRootRoute,
+	HeadContent,
+	Outlet,
+	Scripts,
+} from "@tanstack/react-router";
+import { useEffect } from "react";
+import { BottomNav } from "#/components/BottomNav";
+import { t } from "#/i18n";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
 	head: () => ({
 		meta: [
-			{
-				charSet: "utf-8",
-			},
+			{ charSet: "utf-8" },
 			{
 				name: "viewport",
-				content: "width=device-width, initial-scale=1",
+				content: "width=device-width, initial-scale=1, viewport-fit=cover",
 			},
+			{ title: t.appName },
 			{
-				title: "TanStack Start Starter",
+				name: "description",
+				content: "Aprende inglés con dibujos, como un niño.",
 			},
+			{ name: "theme-color", content: "#f4eee2" },
+			{ name: "apple-mobile-web-app-capable", content: "yes" },
+			{ name: "apple-mobile-web-app-title", content: t.appName },
 		],
 		links: [
+			{ rel: "stylesheet", href: appCss },
+			{ rel: "manifest", href: "/manifest.webmanifest" },
+			{ rel: "icon", href: "/icon-192.png", type: "image/png" },
+			{ rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+			{ rel: "preconnect", href: "https://fonts.googleapis.com" },
+			{
+				rel: "preconnect",
+				href: "https://fonts.gstatic.com",
+				crossOrigin: "anonymous",
+			},
 			{
 				rel: "stylesheet",
-				href: appCss,
+				href: "https://fonts.googleapis.com/css2?family=Lexend:wght@400;700&family=Young+Serif&display=swap",
 			},
 		],
 	}),
 	shellComponent: RootDocument,
+	component: RootLayout,
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en">
+		<html lang="es">
 			<head>
 				<HeadContent />
 			</head>
 			<body>
 				{children}
-				<TanStackDevtools
-					config={{
-						position: "bottom-right",
-					}}
-					plugins={[
-						{
-							name: "Tanstack Router",
-							render: <TanStackRouterDevtoolsPanel />,
-						},
-					]}
-				/>
 				<Scripts />
 			</body>
 		</html>
+	);
+}
+
+function RootLayout() {
+	useEffect(() => {
+		if (import.meta.env.PROD && "serviceWorker" in navigator) {
+			navigator.serviceWorker.register("/sw.js").catch(() => {});
+		}
+	}, []);
+
+	return (
+		<>
+			<main className="mx-auto max-w-md px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-24">
+				<Outlet />
+			</main>
+			<BottomNav />
+		</>
 	);
 }

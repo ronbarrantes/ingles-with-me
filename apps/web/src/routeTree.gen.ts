@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PalabrasRouteImport } from './routes/palabras'
+import { Route as RepasarRouteImport } from './routes/repasar'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PalabrasRoute = PalabrasRouteImport.update({
+  id: '/palabras',
+  path: '/palabras',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RepasarRoute = RepasarRouteImport.update({
+  id: '/repasar',
+  path: '/repasar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/palabras': typeof PalabrasRoute
+  '/repasar': typeof RepasarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/palabras': typeof PalabrasRoute
+  '/repasar': typeof RepasarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/palabras': typeof PalabrasRoute
+  '/repasar': typeof RepasarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/palabras' | '/repasar'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/palabras' | '/repasar'
+  id: '__root__' | '/' | '/palabras' | '/repasar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PalabrasRoute: typeof PalabrasRoute
+  RepasarRoute: typeof RepasarRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/palabras': {
+      id: '/palabras'
+      path: '/palabras'
+      fullPath: '/palabras'
+      preLoaderRoute: typeof PalabrasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/repasar': {
+      id: '/repasar'
+      path: '/repasar'
+      fullPath: '/repasar'
+      preLoaderRoute: typeof RepasarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PalabrasRoute: PalabrasRoute,
+  RepasarRoute: RepasarRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
