@@ -2,8 +2,6 @@
 
 import { useSyncExternalStore } from "react";
 
-export type Direction = "word" | "picture";
-
 /** Spaced repetition (Leitner boxes). Box 0 = still learning. */
 export interface Srs {
 	box: number;

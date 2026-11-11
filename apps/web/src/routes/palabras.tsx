@@ -147,7 +147,6 @@ function WordSheet({ word, onClose }: { word: Word; onClose: () => void }) {
 				<Flashcard
 					key={word.id}
 					word={word}
-					direction="word"
 					flipped={flipped}
 					onFlip={() => setFlipped((f) => !f)}
 				/>
