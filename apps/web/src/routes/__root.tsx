@@ -3,6 +3,7 @@ import {
 	HeadContent,
 	Outlet,
 	Scripts,
+	useRouterState,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { BottomNav } from "#/components/BottomNav";
@@ -73,6 +74,10 @@ function RootLayout() {
 			navigator.serviceWorker.register("/sw.js").catch(() => {});
 		}
 	}, []);
+
+	// The /designs prototypes are full-screen and bring their own chrome.
+	const path = useRouterState({ select: (s) => s.location.pathname });
+	if (path.startsWith("/designs")) return <Outlet />;
 
 	return (
 		<>
