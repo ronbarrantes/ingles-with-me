@@ -7,6 +7,7 @@ import {
 import { useEffect } from "react";
 import { BottomNav } from "#/components/BottomNav";
 import { t } from "#/i18n";
+import { warmUpSpeech } from "#/lib/speech";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -62,6 +63,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function RootLayout() {
+	useEffect(() => {
+		window.addEventListener("pointerdown", warmUpSpeech, { once: true });
+		return () => window.removeEventListener("pointerdown", warmUpSpeech);
+	}, []);
+
 	useEffect(() => {
 		if (import.meta.env.PROD && "serviceWorker" in navigator) {
 			navigator.serviceWorker.register("/sw.js").catch(() => {});
