@@ -1,94 +1,126 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { BackIcon } from "#/components/icons";
-import { Session } from "#/components/Session";
-import { CORE_WORDS, GROUPS } from "#/data/words";
-import { fmt, t } from "#/i18n";
-import { type DeckId, dealNew, unseenIn } from "#/lib/deck";
-import { isDue, useStore } from "#/lib/store";
+import { onColor } from "#/components/Art";
+import { DeckHeader } from "#/components/DeckHeader";
+import { SwipeDeck } from "#/components/SwipeDeck";
+import { isTopic, TOPIC_COLOR, type TopicId } from "#/data/topics";
+import { WORDS_BY_ID, type Word } from "#/data/words";
+import { fmt, t, topicName } from "#/i18n";
+import { dealNew, dueIds, unseenIn } from "#/lib/deck";
+import { actions, type SavedDeck, useStore } from "#/lib/store";
 import { useHydrated } from "#/lib/useHydrated";
-
-const DECKS: DeckId[] = ["todas", ...GROUPS.map((g) => g.id)];
 
 export const Route = createFileRoute("/aprender/$group")({
 	beforeLoad: ({ params }) => {
-		if (!DECKS.includes(params.group as DeckId)) throw notFound();
+		if (!isTopic(params.group)) throw notFound();
 	},
 	component: Study,
 });
 
-/** Aprender, step 2: just the cards. */
+/** One topic's deck. Picks up exactly where you left it. */
 function Study() {
-	const group = Route.useParams().group as DeckId;
+	const topic = Route.useParams().group as TopicId;
 	const state = useStore();
 	const hydrated = useHydrated();
-	const [deck, setDeck] = useState<string[] | null>(null);
-	const [finished, setFinished] = useState(0);
+	const [deck, setDeck] = useState<SavedDeck | null>(null);
+	const [finished, setFinished] = useState<SavedDeck | null>(null);
+	const color = TOPIC_COLOR[topic];
 
 	useEffect(() => {
-		if (hydrated && deck === null) setDeck(dealNew(state, group));
-	}, [hydrated, deck, state, group]);
+		if (!hydrated || deck) return;
+		actions.setLastTopic(topic);
+		const saved = state.decks[topic];
+		if (saved?.ids.length) setDeck(saved);
+		else {
+			const fresh = dealNew(state, topic);
+			setDeck(fresh);
+			if (fresh.ids.length) actions.saveDeck(topic, fresh);
+		}
+	}, [hydrated, deck, state, topic]);
 
-	const name = group === "todas" ? t.learn.all : t.groups[group];
-	const due = CORE_WORDS.filter((w) => isDue(state, w.id)).length;
-	const empty = deck !== null && deck.length === 0;
+	if (!deck) return null;
+
+	const words = deck.ids
+		.map((id) => WORDS_BY_ID.get(id))
+		.filter((w): w is Word => !!w);
+
+	const answer = (w: Word, knew: boolean) => {
+		actions.grade(w.id, knew);
+		const [, ...rest] = deck.ids;
+		const next: SavedDeck = {
+			ids: knew ? rest : [...rest, w.id],
+			total: deck.total,
+			known: deck.known + (knew ? 1 : 0),
+		};
+		if (next.ids.length === 0) {
+			actions.saveDeck(topic, null);
+			setFinished(next);
+		} else actions.saveDeck(topic, next);
+		setDeck(next);
+	};
+
+	const again = () => {
+		const fresh = dealNew(state, topic);
+		setFinished(null);
+		setDeck(fresh);
+		if (fresh.ids.length) actions.saveDeck(topic, fresh);
+	};
+
+	const due = dueIds(state).length;
+	const empty = words.length === 0;
 
 	return (
-		<div className="space-y-3">
-			<header className="flex items-center justify-between">
-				<Link
-					to="/"
-					className="-ml-1 flex h-10 items-center gap-1 pr-2 text-accent"
-				>
-					<BackIcon className="h-5 w-5" />
-					<span>{t.learn.back}</span>
-				</Link>
-				<span className="font-display text-lg">{name}</span>
-			</header>
+		<div className="flex min-h-dvh flex-col p-5 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+			<DeckHeader
+				title={topicName(topic)}
+				known={deck.known}
+				total={deck.total}
+				color={color}
+			/>
 
-			{deck === null ? null : finished > 0 || empty ? (
-				<div className="border border-line bg-card p-6 text-center">
-					<p className="font-display text-3xl">
-						{empty
-							? fmt(t.learn.categoryDone, { category: name })
-							: t.learn.sessionDone}
+			{empty ? (
+				<div className="flex flex-1 flex-col items-center justify-center gap-5 text-center">
+					<p className="text-8xl">🎉</p>
+					<p className="text-4xl font-extrabold">
+						{finished
+							? fmt(t.deck.done, { n: finished.known, total: finished.total })
+							: t.deck.allSeen}
 					</p>
-					<p className="mt-2 text-muted">
-						{empty
-							? t.learn.allDoneHint
-							: fmt(t.learn.sessionDoneHint, { n: finished })}
-					</p>
-					<div className="mt-6 grid gap-3">
-						{unseenIn(state, group).length > 0 && (
+					{!finished && <p className="text-muted">{t.deck.allSeenHint}</p>}
+					<div className="mt-2 grid w-full max-w-xs gap-3">
+						{unseenIn(state, topic).length > 0 && (
 							<button
 								type="button"
-								onClick={() => {
-									setFinished(0);
-									setDeck(dealNew(state, group));
-								}}
-								className="h-13 rounded-sm bg-ink font-bold text-paper"
+								onClick={again}
+								className="h-14 font-bold"
+								style={{ background: color, color: onColor(color) }}
 							>
-								{t.learn.more}
+								{t.deck.another}
 							</button>
 						)}
 						{due > 0 && (
 							<Link
-								to="/repasar"
-								className="grid h-13 place-items-center rounded-sm border-2 border-ink font-bold"
+								to="/repasar/$list"
+								params={{ list: "due" }}
+								className="grid h-14 place-items-center border-2 border-ink font-bold"
 							>
-								{fmt(t.learn.reviewDue, { n: due })}
+								{fmt(t.deck.reviewDue, { n: due })}
 							</Link>
 						)}
-						<Link
-							to="/"
-							className="grid h-13 place-items-center text-muted underline underline-offset-4"
-						>
-							{t.learn.categories}
+						<Link to="/" className="py-2 underline underline-offset-4">
+							{t.deck.changeTopic}
 						</Link>
 					</div>
 				</div>
 			) : (
-				<Session key={deck.join()} ids={deck} onDone={setFinished} />
+				<div className="mt-5 flex flex-1 flex-col">
+					<SwipeDeck
+						words={words}
+						color={color}
+						onAnswer={answer}
+						hint={deck.known === 0 && deck.ids.length === deck.total}
+					/>
+				</div>
 			)}
 		</div>
 	);

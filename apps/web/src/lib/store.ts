@@ -9,10 +9,20 @@ export interface Srs {
 	seen: number;
 }
 
+/** A round in progress for one topic, so you come back to the same card. */
+export interface SavedDeck {
+	ids: string[];
+	total: number;
+	known: number;
+}
+
 export interface State {
 	srs: Record<string, Srs>;
 	favorites: string[];
 	marked: string[];
+	/** Topic shown first in the carousel. */
+	lastTopic: string;
+	decks: Record<string, SavedDeck>;
 }
 
 const KEY = "iwm:v1";
@@ -26,6 +36,8 @@ const initial: State = {
 	srs: {},
 	favorites: [],
 	marked: [],
+	lastTopic: "todas",
+	decks: {},
 };
 
 let state: State = initial;
@@ -87,6 +99,15 @@ export const actions = {
 	},
 	toggleMarked(id: string) {
 		set({ ...state, marked: toggle(state.marked, id) });
+	},
+	setLastTopic(lastTopic: string) {
+		if (state.lastTopic !== lastTopic) set({ ...state, lastTopic });
+	},
+	saveDeck(topic: string, deck: SavedDeck | null) {
+		const decks = { ...state.decks };
+		if (deck) decks[topic] = deck;
+		else delete decks[topic];
+		set({ ...state, decks });
 	},
 	grade(id: string, knew: boolean) {
 		const prev = state.srs[id] ?? { box: 0, due: 0, seen: 0 };

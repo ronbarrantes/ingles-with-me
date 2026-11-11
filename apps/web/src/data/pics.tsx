@@ -5,6 +5,7 @@
 import type { ReactNode } from "react";
 
 const A = "var(--accent, #b22234)";
+const rnd = (n: number) => Math.round(n * 100) / 100;
 type N = number;
 
 // ── Primitives ──────────────────────────────────────────────────────────────
@@ -77,8 +78,9 @@ function Arrow({
 }) {
 	const a = Math.atan2(y2 - y1, x2 - x1);
 	const h = 7;
-	const p1 = [x2 - h * Math.cos(a - 0.5), y2 - h * Math.sin(a - 0.5)];
-	const p2 = [x2 - h * Math.cos(a + 0.5), y2 - h * Math.sin(a + 0.5)];
+	// Rounded so the server and the browser render the exact same path.
+	const p1 = [rnd(x2 - h * Math.cos(a - 0.5)), rnd(y2 - h * Math.sin(a - 0.5))];
+	const p2 = [rnd(x2 - h * Math.cos(a + 0.5)), rnd(y2 - h * Math.sin(a + 0.5))];
 	return (
 		<g stroke={c}>
 			<path
@@ -173,10 +175,10 @@ function Clock({
 		<g stroke={hl ? A : "currentColor"}>
 			<circle cx={x} cy={y} r={r} />
 			<path
-				d={`M${x} ${y} L${x + Math.sin(ha) * r * 0.5} ${y - Math.cos(ha) * r * 0.5}`}
+				d={`M${x} ${y} L${rnd(x + Math.sin(ha) * r * 0.5)} ${rnd(y - Math.cos(ha) * r * 0.5)}`}
 			/>
 			<path
-				d={`M${x} ${y} L${x + Math.sin(ma) * r * 0.75} ${y - Math.cos(ma) * r * 0.75}`}
+				d={`M${x} ${y} L${rnd(x + Math.sin(ma) * r * 0.75)} ${rnd(y - Math.cos(ma) * r * 0.75)}`}
 			/>
 		</g>
 	);
