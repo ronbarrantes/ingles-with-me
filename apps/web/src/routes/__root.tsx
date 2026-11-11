@@ -24,15 +24,44 @@ export const Route = createRootRoute({
 				name: "description",
 				content: "Aprende inglés con dibujos, como un niño.",
 			},
-			{ name: "theme-color", content: "#f6f4ef" },
+			{
+				name: "theme-color",
+				content: "#f6f4ef",
+				media: "(prefers-color-scheme: light)",
+			},
+			{
+				name: "theme-color",
+				content: "#141414",
+				media: "(prefers-color-scheme: dark)",
+			},
+			// Home-screen app: runs full screen with its own name; status bar keeps the default style.
 			{ name: "apple-mobile-web-app-capable", content: "yes" },
-			{ name: "apple-mobile-web-app-title", content: t.appName },
+			{ name: "mobile-web-app-capable", content: "yes" },
+			{ name: "apple-mobile-web-app-title", content: "Inglés" },
+			{ name: "apple-mobile-web-app-status-bar-style", content: "default" },
+			{ name: "application-name", content: "Inglés" },
+			{ name: "format-detection", content: "telephone=no" },
 		],
 		links: [
 			{ rel: "stylesheet", href: appCss },
 			{ rel: "manifest", href: "/manifest.webmanifest" },
-			{ rel: "icon", href: "/icon-192.png", type: "image/png" },
-			{ rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+			{
+				rel: "icon",
+				href: "/favicon-32.png",
+				type: "image/png",
+				sizes: "32x32",
+			},
+			{
+				rel: "icon",
+				href: "/icon-192.png",
+				type: "image/png",
+				sizes: "192x192",
+			},
+			{
+				rel: "apple-touch-icon",
+				href: "/apple-touch-icon.png",
+				sizes: "180x180",
+			},
 			{ rel: "preconnect", href: "https://fonts.googleapis.com" },
 			{
 				rel: "preconnect",
