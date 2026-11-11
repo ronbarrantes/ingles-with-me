@@ -44,7 +44,7 @@ function Words() {
 			color: TOPIC_COLOR[id],
 		})),
 		{ id: "favorites", label: `★ ${t.review.favorites}`, color: "#E0A100" },
-		{ id: "bonus", label: t.words.bonus, color: "#111111" },
+		{ id: "bonus", label: t.words.bonus, color: "#C04ABC" },
 	];
 
 	return (

@@ -1,6 +1,6 @@
 // Offline support: pages network-first, built assets cache-first,
 // everything else stale-while-revalidate. Bump VERSION to drop old caches.
-const VERSION = "v7";
+const VERSION = "v8";
 const CACHE = `iwm-${VERSION}`;
 const GROUPS = ["todas", "personas", "casa", "mundo", "acciones", "describir", "clave"];
 const LISTS = ["due", "marked", "favorites"];

@@ -7,7 +7,7 @@ export type TopicId = GroupId | "todas";
 export const TOPIC_IDS: TopicId[] = ["todas", ...GROUPS.map((g) => g.id)];
 
 export const TOPIC_COLOR: Record<TopicId, string> = {
-	todas: "#111111",
+	todas: "#2B59C3",
 	personas: "#E4572E",
 	casa: "#F3A712",
 	mundo: "#29335C",
@@ -18,7 +18,7 @@ export const TOPIC_COLOR: Record<TopicId, string> = {
 
 export const TOPIC_EMOJI: Record<TopicId, string> = {
 	todas: "🎲",
-	personas: "👪",
+	personas: "🙋",
 	casa: "🍲",
 	mundo: "🌎",
 	acciones: "🏃",
