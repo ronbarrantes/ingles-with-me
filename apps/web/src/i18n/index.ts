@@ -12,7 +12,6 @@ const es = {
 		listen: "Escuchar",
 		listenExample: "Escuchar ejemplo",
 		showSpanish: "Ver en español",
-		missing: "¿Qué palabra falta?",
 		cognate: "Se parece al español",
 		favorite: "Favorita",
 		mark: "Marcar para repasar",

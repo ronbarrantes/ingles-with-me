@@ -2,13 +2,12 @@ import { useState } from "react";
 import type { Word } from "#/data/words";
 import { t } from "#/i18n";
 import { speak } from "#/lib/speech";
-import { actions, type Direction, useStore } from "#/lib/store";
+import { actions, useStore } from "#/lib/store";
 import { BookmarkIcon, FlipIcon, SpeakerIcon, StarIcon } from "./icons";
 import { hasPicture, Picture, Sentence } from "./Picture";
 
 interface Props {
 	word: Word;
-	direction: Direction;
 	flipped: boolean;
 	onFlip: () => void;
 	/** Nudge the card once so it is obvious it turns. */
@@ -16,30 +15,14 @@ interface Props {
 }
 
 /**
- * One card. Front: the English word (or the picture, in reverse mode).
- * Back: picture + word + example. Spanish stays hidden behind a tap.
+ * One card. Front: the English word. Back: its picture + example. Spanish stays hidden behind a tap.
  * Parents should pass `key={word.id}` so the Spanish panel resets.
  */
-export function Flashcard({
-	word,
-	direction,
-	flipped,
-	onFlip,
-	peek = false,
-}: Props) {
+export function Flashcard({ word, flipped, onFlip, peek = false }: Props) {
 	const state = useStore();
 	const [showEs, setShowEs] = useState(false);
 	const favorite = state.favorites.includes(word.id);
 	const marked = state.marked.includes(word.id);
-	// Words without a picture can't be shown picture-first; use the
-	// example sentence with the word blanked out instead.
-	const reverse = direction === "picture";
-	const answerVisible = flipped || !reverse;
-
-	const flip = () => {
-		if (!flipped && reverse) speak(word.en);
-		onFlip();
-	};
 
 	return (
 		<article className="rounded-2xl border border-line bg-card">
@@ -67,7 +50,7 @@ export function Flashcard({
 
 			<button
 				type="button"
-				onClick={flip}
+				onClick={onFlip}
 				aria-label={t.card.flip}
 				className="flip-scene relative block h-48 w-full px-5 text-left md:h-60"
 			>
@@ -75,26 +58,13 @@ export function Flashcard({
 					className={`flip-inner ${flipped ? "is-flipped" : ""} ${peek ? "peek" : ""}`}
 				>
 					<div className="flip-face">
-						{reverse ? (
-							hasPicture(word) ? (
-								<Picture word={word} />
-							) : (
-								<div className="text-center">
-									<p className="font-display text-2xl leading-snug">
-										<Sentence word={word} blank />
-									</p>
-									<p className="mt-4 text-sm text-muted">{t.card.missing}</p>
-								</div>
-							)
-						) : (
-							<p className="font-display text-6xl break-words text-center">
-								{word.en}
-							</p>
-						)}
+						<p className="font-display text-6xl break-words text-center">
+							{word.en}
+						</p>
 					</div>
 					<div className="flip-face flip-back gap-4">
 						<Picture word={word} />
-						{(reverse || !hasPicture(word)) && (
+						{!hasPicture(word) && (
 							<p className="font-display text-4xl text-center">{word.en}</p>
 						)}
 						<p className="text-center text-lg leading-snug">
@@ -108,10 +78,8 @@ export function Flashcard({
 			<div className="flex gap-2 px-3 pb-3">
 				<button
 					type="button"
-					disabled={!answerVisible}
-					style={{ visibility: answerVisible ? "visible" : "hidden" }}
 					onClick={() => speak(word.en)}
-					className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-ink disabled:opacity-30"
+					className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-ink"
 				>
 					<SpeakerIcon />
 					<span className="font-bold">{t.card.listen}</span>

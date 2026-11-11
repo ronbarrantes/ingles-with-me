@@ -2,15 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { WORDS_BY_ID } from "#/data/words";
 import { t } from "#/i18n";
 import { speak } from "#/lib/speech";
-import { actions, type Direction } from "#/lib/store";
+import { actions } from "#/lib/store";
 import { Flashcard } from "./Flashcard";
 
-const randomDirection = (): Direction =>
-	Math.random() < 0.5 ? "word" : "picture";
-
 /**
- * Runs through a deck of cards, each shown word-first or picture-first at
- * random. "Otra vez" sends the card to the back of the deck; "La sé" moves
+ * Runs through a deck of cards, word first. "Otra vez" sends the card to the back of the deck; "La sé" moves
  * on. Both update spaced repetition. Keyboard: Space flips, ←/→ grade,
  * S speaks.
  */
@@ -24,7 +20,6 @@ export function Session({
 	const [queue, setQueue] = useState(ids);
 	const [flipped, setFlipped] = useState(false);
 	const [done, setDone] = useState(0);
-	const [direction, setDirection] = useState(randomDirection);
 	const [first, setFirst] = useState(true);
 
 	const word = WORDS_BY_ID.get(queue[0] ?? "");
@@ -37,7 +32,6 @@ export function Session({
 			const next = knew ? rest : [...rest, word.id];
 			setFlipped(false);
 			setFirst(false);
-			setDirection(randomDirection());
 			if (knew) setDone((d) => d + 1);
 			if (next.length === 0) onDone(ids.length);
 			else setQueue(next);
@@ -86,7 +80,6 @@ export function Session({
 			<Flashcard
 				key={word.id}
 				word={word}
-				direction={direction}
 				flipped={flipped}
 				onFlip={() => setFlipped((f) => !f)}
 				peek={first}
