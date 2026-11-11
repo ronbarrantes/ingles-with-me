@@ -2,7 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { onColor } from "#/components/Art";
 import { ThemeToggle } from "#/components/ThemeToggle";
-import { TOPIC_COLOR, TOPIC_EMOJI, TOPIC_IDS } from "#/data/topics";
+import {
+	TOPIC_COLOR,
+	TOPIC_EMOJI,
+	TOPIC_IDS,
+	TOPIC_SAMPLES,
+	type TopicId,
+	wordsIn,
+} from "#/data/topics";
 import { CORE_WORDS } from "#/data/words";
 import { fmt, t, topicName } from "#/i18n";
 import { isLearned, useStore } from "#/lib/store";
@@ -16,6 +23,10 @@ function Topics() {
 	const hydrated = useHydrated();
 	const strip = useRef<HTMLDivElement>(null);
 	const [active, setActive] = useState(0);
+	// The description under the cards: fades out while sliding, back in when it stops.
+	const [shown, setShown] = useState(0);
+	const [fading, setFading] = useState(false);
+	const settle = useRef<ReturnType<typeof setTimeout>>(undefined);
 	const learned = CORE_WORDS.filter((w) => isLearned(state, w.id)).length;
 
 	const cardAt = (i: number) =>
@@ -34,6 +45,12 @@ function Topics() {
 			if (d < dist) [best, dist] = [i, d];
 		}
 		setActive(best);
+		setFading(true);
+		clearTimeout(settle.current);
+		settle.current = setTimeout(() => {
+			setShown(best);
+			setFading(false);
+		}, 160);
 	};
 
 	// Open on the last topic once saved progress is loaded.
@@ -49,10 +66,11 @@ function Topics() {
 			behavior: "instant",
 		});
 		setActive(i);
+		setShown(i);
 	}, [hydrated, state.lastTopic]);
 
 	return (
-		<div className="flex h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] flex-col pt-[calc(1.5rem+env(safe-area-inset-top))] pb-5">
+		<div className="flex min-h-[calc(100dvh-6rem-env(safe-area-inset-bottom))] flex-col pt-[calc(1.5rem+env(safe-area-inset-top))] pb-5">
 			<header className="px-6">
 				<div className="flex items-center justify-between">
 					<p className="text-sm font-semibold tracking-widest uppercase opacity-50">
@@ -68,66 +86,107 @@ function Topics() {
 				</p>
 			</header>
 
-			<div
-				ref={strip}
-				onScroll={onScroll}
-				className="mt-5 flex min-h-0 flex-1 snap-x snap-mandatory gap-4 overflow-x-auto px-[16vw] [scrollbar-width:none] sm:px-24"
-			>
-				{TOPIC_IDS.map((id) => {
-					const color = TOPIC_COLOR[id];
-					const saved = hydrated ? state.decks[id] : undefined;
-					return (
-						<Link
-							key={id}
-							to="/aprender/$group"
-							params={{ group: id }}
-							className="flex h-full max-h-[34rem] w-[68vw] max-w-72 shrink-0 snap-center flex-col justify-between p-6 transition-transform active:scale-[0.97]"
-							style={{ background: color, color: onColor(color) }}
-						>
-							<span className="text-7xl">{TOPIC_EMOJI[id]}</span>
-							<span>
-								<span className="block text-[2.1rem] leading-none font-extrabold">
-									{topicName(id)}
+			<div className="mt-4 flex min-h-0 flex-1 flex-col justify-center">
+				<div
+					ref={strip}
+					onScroll={onScroll}
+					className="flex shrink-0 snap-x snap-mandatory gap-4 overflow-x-auto px-[calc((100vw-min(34dvh,18rem,72vw)/1.06)/2)] [scrollbar-width:none]"
+				>
+					{TOPIC_IDS.map((id) => {
+						const color = TOPIC_COLOR[id];
+						const saved = hydrated ? state.decks[id] : undefined;
+						return (
+							<Link
+								key={id}
+								to="/aprender/$group"
+								params={{ group: id }}
+								className="@container aspect-[1/1.06] h-[min(34dvh,18rem,72vw)] shrink-0 snap-center transition-transform active:scale-[0.97]"
+								style={{ background: color, color: onColor(color) }}
+							>
+								{/* Sizes in cqw scale with the card, so small cards stay readable. */}
+								<span className="flex h-full flex-col justify-between p-[9cqw]">
+									<span className="text-[29cqw] leading-none">
+										{TOPIC_EMOJI[id]}
+									</span>
+									<span>
+										<span className="block text-[13.5cqw] leading-none font-extrabold">
+											{topicName(id)}
+										</span>
+										<span className="mt-[4cqw] block text-[max(11px,5.6cqw)] font-semibold opacity-85">
+											{saved
+												? fmt(t.learn.resume, {
+														n: saved.known + 1,
+														total: saved.total,
+													})
+												: t.learn.start}
+										</span>
+									</span>
 								</span>
-								<span className="mt-3 block text-sm font-semibold opacity-85">
-									{saved
-										? fmt(t.learn.resume, {
-												n: saved.known + 1,
-												total: saved.total,
-											})
-										: t.learn.start}
-								</span>
-							</span>
-						</Link>
-					);
-				})}
-			</div>
+							</Link>
+						);
+					})}
+				</div>
 
-			<div className="mt-5 flex justify-center gap-2">
-				{TOPIC_IDS.map((id, i) => (
-					<button
-						key={id}
-						type="button"
-						aria-label={topicName(id)}
-						aria-current={i === active}
-						onClick={() =>
-							cardAt(i)?.scrollIntoView({
-								inline: "center",
-								block: "nearest",
-								behavior: "smooth",
-							})
-						}
-						className="grid h-6 place-items-center"
-					>
-						<span
-							className="block h-2 transition-all duration-300"
-							style={{
-								width: i === active ? 22 : 8,
-								background: i === active ? TOPIC_COLOR[id] : "var(--line)",
-							}}
-						/>
-					</button>
-				))}
+				<TopicInfo id={TOPIC_IDS[shown]} hidden={fading} />
+
+				<div className="mt-4 flex justify-center gap-2">
+					{TOPIC_IDS.map((id, i) => (
+						<button
+							key={id}
+							type="button"
+							aria-label={topicName(id)}
+							aria-current={i === active}
+							onClick={() =>
+								cardAt(i)?.scrollIntoView({
+									inline: "center",
+									block: "nearest",
+									behavior: "smooth",
+								})
+							}
+							className="grid h-6 place-items-center"
+						>
+							<span
+								className="block h-2 transition-all duration-300"
+								style={{
+									width: i === active ? 22 : 8,
+									background: i === active ? TOPIC_COLOR[id] : "var(--line)",
+								}}
+							/>
+						</button>
+					))}
+				</div>
+			</div>
+		</div>
+	);
+}
+
+/** What's inside a topic: a line about it, a few sample words, progress. */
+function TopicInfo({ id, hidden }: { id: TopicId; hidden: boolean }) {
+	const state = useStore();
+	const words = wordsIn(id);
+	const done = words.filter((w) => isLearned(state, w.id)).length;
+	return (
+		<div
+			className={`mx-auto mt-5 w-[min(32dvh,17rem,68vw)] min-w-60 transition-opacity ${hidden ? "opacity-0 duration-100" : "opacity-100 duration-300"}`}
+			aria-live="polite"
+		>
+			<p className="text-lg leading-snug font-bold">{t.learn.hints[id]}</p>
+			<p className="mt-1 truncate text-muted [@media(max-height:620px)]:hidden">
+				{TOPIC_SAMPLES[id].join(" · ")}
+			</p>
+			<div className="mt-3 flex items-center gap-3">
+				<span className="h-1.5 flex-1 bg-line">
+					<span
+						className="block h-full"
+						style={{
+							width: `${(done / words.length) * 100}%`,
+							background: TOPIC_COLOR[id],
+						}}
+					/>
+				</span>
+				<span className="text-xs text-muted tabular-nums">
+					{fmt(t.progress, { n: done, total: words.length })}
+				</span>
 			</div>
 		</div>
 	);
