@@ -1,17 +1,93 @@
-
 @import "tailwindcss";
 
-* {
-  box-sizing: border-box;
+/* Warm paper, ink, one terracotta accent. Flat: borders, no shadows. */
+:root {
+	--paper: #f4eee2;
+	--card: #fbf8f1;
+	--ink: #24201b;
+	--muted: #6f675b;
+	--line: #ddd3c1;
+	--accent: #b9512d;
+	--on-accent: #fff8ef;
+	color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--paper: #1b1916;
+		--card: #24211d;
+		--ink: #f1eadc;
+		--muted: #a59c8d;
+		--line: #3a352e;
+		--accent: #e07a52;
+		--on-accent: #1b1916;
+		color-scheme: dark;
+	}
+}
+
+@theme inline {
+	--color-paper: var(--paper);
+	--color-card: var(--card);
+	--color-ink: var(--ink);
+	--color-muted: var(--muted);
+	--color-line: var(--line);
+	--color-accent: var(--accent);
+	--color-on-accent: var(--on-accent);
+	--font-sans: "Lexend", ui-sans-serif, system-ui, sans-serif;
+	--font-display: "Young Serif", ui-serif, Georgia, serif;
 }
 
 html,
-body,
-#app {
-  min-height: 100%;
+body {
+	min-height: 100%;
 }
 
 body {
-  margin: 0;
+	margin: 0;
+	background: var(--paper);
+	color: var(--ink);
+	font-family: var(--font-sans);
+	-webkit-tap-highlight-color: transparent;
 }
 
+button {
+	cursor: pointer;
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+/* Card flip */
+.flip-scene {
+	perspective: 1200px;
+}
+.flip-inner {
+	position: relative;
+	height: 100%;
+	transform-style: preserve-3d;
+	transition: transform 0.45s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.flip-inner.is-flipped {
+	transform: rotateY(180deg);
+}
+.flip-face {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+}
+.flip-back {
+	transform: rotateY(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.flip-inner {
+		transition: none;
+	}
+}
