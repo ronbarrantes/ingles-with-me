@@ -10,9 +10,9 @@ function Sheet() {
 	const missing = ids.filter((id) => !WORDS_BY_ID.has(id));
 	return (
 		<div className="p-4">
-			<h1 className="font-display text-3xl">Dibujos ({ids.length})</h1>
+			<h1 className="font-display text-3xl">Drawings ({ids.length})</h1>
 			{missing.length > 0 && (
-				<p className="text-accent">Sin palabra: {missing.join(", ")}</p>
+				<p className="text-accent">No matching word: {missing.join(", ")}</p>
 			)}
 			<div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(110px,1fr))] gap-2">
 				{ids.map((id) => (

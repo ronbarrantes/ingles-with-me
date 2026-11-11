@@ -56,7 +56,7 @@ function View() {
 							search={{ s: s === "study" ? "picker" : "study" }}
 							className="border-t border-white/20 px-2 py-2"
 						>
-							{s === "study" ? "Tema" : "Estudiar"}
+							{s === "study" ? "Topic" : "Study"}
 						</Link>
 						<button
 							type="button"
@@ -71,7 +71,7 @@ function View() {
 						type="button"
 						onClick={() => setOpen(true)}
 						className="px-1.5 py-4"
-						aria-label="Diseños"
+						aria-label="Designs"
 					>
 						{n}
 					</button>

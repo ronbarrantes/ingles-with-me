@@ -12,27 +12,27 @@ export const DESIGNS: {
 }[] = [
 	{
 		name: "Pila",
-		idea: "Desliza tarjetas: derecha la sé, izquierda otra vez.",
+		idea: "Swipe cards: right = I know it, left = again.",
 		Component: Pila,
 	},
 	{
 		name: "Concurso",
-		idea: "Juego de preguntas: elige la palabra correcta, gana puntos y rachas.",
+		idea: "Game show quiz: pick the right word, earn points and streaks.",
 		Component: Concurso,
 	},
 	{
 		name: "Cuaderno",
-		idea: "Cuaderno escolar: fotos pegadas, letra a mano, stickers por palabra.",
+		idea: "School notebook: taped photos, handwriting, a sticker per word.",
 		Component: Cuaderno,
 	},
 	{
 		name: "Metro",
-		idea: "Señales de metro: cada tema es una línea, cada palabra una parada.",
+		idea: "Subway signage: each topic is a line, each word a stop.",
 		Component: Metro,
 	},
 	{
 		name: "Chat",
-		idea: "Conversación con Sam, tu profe: todo pasa dentro del chat.",
+		idea: "A chat with Sam the tutor: everything happens in the conversation.",
 		Component: Chat,
 	},
 ];
