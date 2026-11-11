@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Flashcard } from "#/components/Flashcard";
 import { CheckIcon, CloseIcon, SearchIcon, StarIcon } from "#/components/icons";
+import { hasPic, Pic } from "#/data/pics";
 import { ALL_WORDS, GROUPS, type GroupId, type Word } from "#/data/words";
 import { t } from "#/i18n";
 import { isLearned, useStore } from "#/lib/store";
@@ -81,11 +82,14 @@ function Words() {
 								className="flex w-full items-center gap-3 px-4 py-2.5 text-left"
 							>
 								<span className="grid h-10 w-10 shrink-0 place-items-center text-2xl">
-									{w.pic || (
-										<span className="font-display text-xl text-muted">
-											{w.en[0]}
-										</span>
-									)}
+									{w.pic ||
+										(hasPic(w.id) ? (
+											<Pic id={w.id} className="h-9 w-9" />
+										) : (
+											<span className="font-display text-xl text-muted">
+												{w.en[0]}
+											</span>
+										))}
 								</span>
 								<span className="flex-1 font-display text-xl">{w.en}</span>
 								{state.favorites.includes(w.id) && (

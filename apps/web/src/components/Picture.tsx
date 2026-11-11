@@ -1,3 +1,4 @@
+import { hasPic, Pic } from "#/data/pics";
 import type { Word } from "#/data/words";
 
 // Custom SVG pictures go here as they get made: { dog: "/pics/dog.svg" }.
@@ -7,7 +8,7 @@ const SVGS: Record<string, string> = {};
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export function hasPicture(w: Word) {
-	return Boolean(SVGS[w.id] || w.pic);
+	return Boolean(SVGS[w.id] || w.pic || hasPic(w.id));
 }
 
 export function Picture({
@@ -34,6 +35,11 @@ export function Picture({
 			<span className={cls} role="img" aria-hidden>
 				{word.pic}
 			</span>
+		);
+	}
+	if (hasPic(word.id)) {
+		return (
+			<Pic id={word.id} className={size === "lg" ? "h-32 w-32" : "h-9 w-9"} />
 		);
 	}
 	return null;
