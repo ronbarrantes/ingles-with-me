@@ -2,18 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Flashcard } from "#/components/Flashcard";
 import { CheckIcon, CloseIcon, SearchIcon, StarIcon } from "#/components/icons";
-import {
-	ALL_WORDS,
-	CATEGORY_ORDER,
-	type CategoryId,
-	type Word,
-} from "#/data/words";
+import { ALL_WORDS, GROUPS, type GroupId, type Word } from "#/data/words";
 import { t } from "#/i18n";
 import { isLearned, useStore } from "#/lib/store";
 
 export const Route = createFileRoute("/palabras")({ component: Words });
 
-type Filter = "all" | "favorites" | CategoryId;
+type Filter = "all" | "favorites" | "bonus" | GroupId;
 
 const normalize = (s: string) =>
 	s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -27,7 +22,13 @@ function Words() {
 	const q = normalize(query.trim());
 	const words = ALL_WORDS.filter((w) => {
 		if (filter === "favorites" && !state.favorites.includes(w.id)) return false;
-		if (filter !== "all" && filter !== "favorites" && w.category !== filter)
+		if (filter === "bonus" && !w.bonus) return false;
+		if (
+			filter !== "all" &&
+			filter !== "favorites" &&
+			filter !== "bonus" &&
+			w.group !== filter
+		)
 			return false;
 		return !q || normalize(w.en).includes(q) || normalize(w.es).includes(q);
 	});
@@ -35,7 +36,8 @@ function Words() {
 	const chips: [Filter, string][] = [
 		["all", t.words.all],
 		["favorites", t.words.favorites],
-		...CATEGORY_ORDER.map((c) => [c, t.categories[c]] as [Filter, string]),
+		...GROUPS.map((g) => [g.id, t.groups[g.id].name] as [Filter, string]),
+		["bonus", t.categories.bonus],
 	];
 
 	return (

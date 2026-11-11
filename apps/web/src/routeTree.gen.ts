@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PalabrasRouteImport } from './routes/palabras'
 import { Route as RepasarRouteImport } from './routes/repasar'
+import { Route as AprenderGroupRouteImport } from './routes/aprender.$group'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,44 @@ const RepasarRoute = RepasarRouteImport.update({
   path: '/repasar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AprenderGroupRoute = AprenderGroupRouteImport.update({
+  id: '/aprender/$group',
+  path: '/aprender/$group',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/palabras': typeof PalabrasRoute
   '/repasar': typeof RepasarRoute
+  '/aprender/$group': typeof AprenderGroupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/palabras': typeof PalabrasRoute
   '/repasar': typeof RepasarRoute
+  '/aprender/$group': typeof AprenderGroupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/palabras': typeof PalabrasRoute
   '/repasar': typeof RepasarRoute
+  '/aprender/$group': typeof AprenderGroupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/palabras' | '/repasar'
+  fullPaths: '/' | '/palabras' | '/repasar' | '/aprender/$group'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/palabras' | '/repasar'
-  id: '__root__' | '/' | '/palabras' | '/repasar'
+  to: '/' | '/palabras' | '/repasar' | '/aprender/$group'
+  id: '__root__' | '/' | '/palabras' | '/repasar' | '/aprender/$group'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PalabrasRoute: typeof PalabrasRoute
   RepasarRoute: typeof RepasarRoute
+  AprenderGroupRoute: typeof AprenderGroupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepasarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/aprender/$group': {
+      id: '/aprender/$group'
+      path: '/aprender/$group'
+      fullPath: '/aprender/$group'
+      preLoaderRoute: typeof AprenderGroupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PalabrasRoute: PalabrasRoute,
   RepasarRoute: RepasarRoute,
+  AprenderGroupRoute: AprenderGroupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

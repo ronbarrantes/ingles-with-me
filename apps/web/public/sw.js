@@ -1,8 +1,9 @@
 // Offline support: pages network-first, built assets cache-first,
 // everything else stale-while-revalidate. Bump VERSION to drop old caches.
-const VERSION = "v2";
+const VERSION = "v3";
 const CACHE = `iwm-${VERSION}`;
-const PAGES = ["/", "/palabras", "/repasar"];
+const GROUPS = ["todas", "personas", "casa", "mundo", "acciones", "describir", "clave"];
+const PAGES = ["/", "/palabras", "/repasar", ...GROUPS.map((g) => `/aprender/${g}`)];
 const STATIC = ["/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
