@@ -70,7 +70,7 @@ function Topics() {
 	}, [hydrated, state.lastTopic]);
 
 	return (
-		<div className="flex min-h-[calc(100dvh-6rem-env(safe-area-inset-bottom))] flex-col pt-[calc(1.5rem+env(safe-area-inset-top))] pb-5">
+		<div className="flex min-h-[calc(100dvh-6rem-env(safe-area-inset-bottom))] flex-col pt-[calc(1.5rem+env(safe-area-inset-top))] pb-0">
 			<header className="px-6">
 				<div className="flex items-center justify-between">
 					<p className="text-sm font-semibold tracking-widest uppercase opacity-50">
@@ -90,7 +90,7 @@ function Topics() {
 				<div
 					ref={strip}
 					onScroll={onScroll}
-					className="flex shrink-0 snap-x snap-mandatory gap-4 overflow-x-auto px-[calc((100vw-min(34dvh,18rem,72vw)/1.06)/2)] [scrollbar-width:none]"
+					className="flex shrink-0 snap-x snap-mandatory gap-4 overflow-x-auto px-[calc((100vw-min(36dvh,20rem,82vw)/1.2)/2)] [scrollbar-width:none]"
 				>
 					{TOPIC_IDS.map((id) => {
 						const color = TOPIC_COLOR[id];
@@ -100,7 +100,7 @@ function Topics() {
 								key={id}
 								to="/aprender/$group"
 								params={{ group: id }}
-								className="@container aspect-[1/1.06] h-[min(34dvh,18rem,72vw)] shrink-0 snap-center transition-transform active:scale-[0.97]"
+								className="@container aspect-[1/1.2] h-[min(36dvh,20rem,82vw)] shrink-0 snap-center transition-transform active:scale-[0.97]"
 								style={{ background: color, color: onColor(color) }}
 							>
 								{/* Sizes in cqw scale with the card, so small cards stay readable. */}
@@ -120,6 +120,7 @@ function Topics() {
 													})
 												: t.learn.start}
 										</span>
+										<TopicProgress id={id} />
 									</span>
 								</span>
 							</Link>
@@ -128,66 +129,71 @@ function Topics() {
 				</div>
 
 				<TopicInfo id={TOPIC_IDS[shown]} hidden={fading} />
+			</div>
 
-				<div className="mt-4 flex justify-center gap-2">
-					{TOPIC_IDS.map((id, i) => (
-						<button
-							key={id}
-							type="button"
-							aria-label={topicName(id)}
-							aria-current={i === active}
-							onClick={() =>
-								cardAt(i)?.scrollIntoView({
-									inline: "center",
-									block: "nearest",
-									behavior: "smooth",
-								})
-							}
-							className="grid h-6 place-items-center"
-						>
-							<span
-								className="block h-2 transition-all duration-300"
-								style={{
-									width: i === active ? 22 : 8,
-									background: i === active ? TOPIC_COLOR[id] : "var(--line)",
-								}}
-							/>
-						</button>
-					))}
-				</div>
+			<div className="mt-4 flex shrink-0 justify-center gap-2">
+				{TOPIC_IDS.map((id, i) => (
+					<button
+						key={id}
+						type="button"
+						aria-label={topicName(id)}
+						aria-current={i === active}
+						onClick={() =>
+							cardAt(i)?.scrollIntoView({
+								inline: "center",
+								block: "nearest",
+								behavior: "smooth",
+							})
+						}
+						className="grid h-6 place-items-center"
+					>
+						<span
+							className="block h-2 transition-all duration-300"
+							style={{
+								width: i === active ? 22 : 8,
+								background: i === active ? TOPIC_COLOR[id] : "var(--line)",
+							}}
+						/>
+					</button>
+				))}
 			</div>
 		</div>
 	);
 }
 
-/** What's inside a topic: a line about it, a few sample words, progress. */
-function TopicInfo({ id, hidden }: { id: TopicId; hidden: boolean }) {
+/** Learned words in a topic, as a thin bar inside its card. */
+function TopicProgress({ id }: { id: TopicId }) {
 	const state = useStore();
 	const words = wordsIn(id);
 	const done = words.filter((w) => isLearned(state, w.id)).length;
 	return (
+		<span className="mt-[5cqw] flex items-center gap-[3cqw]">
+			<span className="h-[max(3px,1.3cqw)] flex-1 bg-current/25">
+				<span
+					className="block h-full bg-current"
+					style={{ width: `${(done / words.length) * 100}%` }}
+				/>
+			</span>
+			<span className="text-[max(10px,4.4cqw)] font-semibold tabular-nums opacity-85">
+				{done}/{words.length}
+			</span>
+		</span>
+	);
+}
+
+/** What's inside a topic: a line about it and a few sample words. Fixed height, so nothing shifts. */
+function TopicInfo({ id, hidden }: { id: TopicId; hidden: boolean }) {
+	return (
 		<div
-			className={`mx-auto mt-5 w-[min(32dvh,17rem,68vw)] min-w-60 transition-opacity ${hidden ? "opacity-0 duration-100" : "opacity-100 duration-300"}`}
+			className={`mx-auto mt-5 w-[min(30dvh,17rem,68vw)] min-w-60 transition-opacity ${hidden ? "opacity-0 duration-100" : "opacity-100 duration-300"}`}
 			aria-live="polite"
 		>
-			<p className="text-lg leading-snug font-bold">{t.learn.hints[id]}</p>
-			<p className="mt-1 truncate text-muted [@media(max-height:620px)]:hidden">
+			<p className="line-clamp-2 h-[2lh] text-lg leading-snug font-bold">
+				{t.learn.hints[id]}
+			</p>
+			<p className="mt-1 h-[1lh] truncate text-muted [@media(max-height:620px)]:hidden">
 				{TOPIC_SAMPLES[id].join(" · ")}
 			</p>
-			<div className="mt-3 flex items-center gap-3">
-				<span className="h-1.5 flex-1 bg-line">
-					<span
-						className="block h-full"
-						style={{
-							width: `${(done / words.length) * 100}%`,
-							background: TOPIC_COLOR[id],
-						}}
-					/>
-				</span>
-				<span className="text-xs text-muted tabular-nums">
-					{fmt(t.progress, { n: done, total: words.length })}
-				</span>
-			</div>
 		</div>
 	);
 }
