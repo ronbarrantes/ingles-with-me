@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Art, onColor } from "#/components/Art";
 import { Card } from "#/components/Card";
 import { CheckIcon, SearchIcon } from "#/components/icons";
+import { ListenButton } from "#/components/ListenButton";
 import { colorOf, TOPIC_COLOR, TOPIC_IDS, type TopicId } from "#/data/topics";
 import { ALL_WORDS, type Word } from "#/data/words";
 import { t, topicName } from "#/i18n";
@@ -177,13 +178,11 @@ function WordOverlay({ word, onClose }: { word: Word; onClose: () => void }) {
 				>
 					<Card word={word} flipped={flipped} color={color} />
 				</div>
-				<button
-					type="button"
-					onClick={() => speak(word.en)}
+				<ListenButton
+					text={word.en}
+					label
 					className="mt-5 h-16 border-2 border-ink text-xl font-bold"
-				>
-					🔊 {t.deck.listen}
-				</button>
+				/>
 			</div>
 		</div>
 	);

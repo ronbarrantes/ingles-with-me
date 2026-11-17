@@ -71,3 +71,17 @@ export function speak(text: string, rate = 0.85) {
 		synth.speak(u);
 	}
 }
+
+let last = { text: "", at: 0, slow: false };
+
+/**
+ * Say a word. Tapping again within a few seconds says it slowly (and
+ * the next tap goes back to normal). Returns whether this one was slow.
+ */
+export function speakWord(text: string) {
+	const now = Date.now();
+	const slow = last.text === text && now - last.at < 4000 && !last.slow;
+	speak(text, slow ? 0.45 : 0.85);
+	last = { text, at: now, slow };
+	return slow;
+}
