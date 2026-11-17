@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SAY, soundTips } from "#/data/say";
 import type { Word } from "#/data/words";
 import { t } from "#/i18n";
 import { speak } from "#/lib/speech";
@@ -57,16 +58,37 @@ export function Card({
 				</div>
 
 				{/* Back */}
-				<div className="absolute inset-0 flex flex-col border-2 border-ink bg-card [backface-visibility:hidden] [transform:rotateY(180deg)]">
+				<div className="absolute inset-0 flex flex-col border-2 border-ink bg-card [container-type:size] [backface-visibility:hidden] [transform:rotateY(180deg)]">
 					<span className="absolute inset-x-14 top-5 text-center text-[11px] font-bold tracking-[0.18em] text-muted uppercase">
 						{t.categories[word.category]}
 					</span>
-					<div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 pt-14">
+					<div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[min(0.75rem,2.2cqh)] px-6 pt-[min(3.5rem,12cqh)] pb-[min(1.5rem,4cqh)]">
 						<Art word={word} />
 						<span
-							className={`text-center font-extrabold ${hasArt(word) ? "text-4xl" : "text-6xl"}`}
+							className={`text-center leading-tight font-extrabold ${hasArt(word) ? "text-[min(2.25rem,8.5cqh)]" : "text-[min(3.75rem,13cqh)]"}`}
 						>
 							{word.en}
+						</span>
+						<span className="-mt-1 flex flex-col items-center">
+							<span className="text-center">
+								<span className="text-xs font-bold tracking-widest text-muted uppercase">
+									{t.deck.sayLabel}
+								</span>{" "}
+								<span
+									className="text-[min(1.25rem,5.2cqh)] font-extrabold"
+									style={{ color }}
+								>
+									{SAY[word.id]}
+								</span>
+							</span>
+							{soundTips(word).map((tip) => (
+								<span
+									key={tip}
+									className="text-center text-xs text-muted [@container(max-height:26rem)]:hidden"
+								>
+									{tip}
+								</span>
+							))}
 						</span>
 						<button
 							type="button"
@@ -76,7 +98,7 @@ export function Card({
 								speak(word.example, 0.8);
 							}}
 							aria-label={t.deck.listenSentence}
-							className="text-center text-lg leading-snug underline decoration-dotted decoration-2 underline-offset-[6px]"
+							className="text-center text-[min(1.125rem,4.6cqh)] leading-snug underline decoration-dotted decoration-2 underline-offset-[6px]"
 							style={{ textDecorationColor: color }}
 						>
 							<SpeakerIcon

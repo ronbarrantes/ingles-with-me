@@ -5,6 +5,7 @@ import { speak } from "#/lib/speech";
 import { actions } from "#/lib/store";
 import { onColor } from "./Art";
 import { Card } from "./Card";
+import { ListenButton } from "./ListenButton";
 
 const FLING_DISTANCE = 100; // px
 const FLING_SPEED = 0.45; // px per ms
@@ -244,14 +245,10 @@ export function SwipeDeck({
 				>
 					✕
 				</button>
-				<button
-					type="button"
-					onClick={() => speak(top.en)}
+				<ListenButton
+					text={top.en}
 					className="h-16 border-2 border-ink text-2xl"
-					aria-label={t.deck.listen}
-				>
-					🔊
-				</button>
+				/>
 				<button
 					type="button"
 					onClick={() => fling(1, 1.2)}

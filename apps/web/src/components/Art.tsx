@@ -9,8 +9,17 @@ export function Art({
 	word: Word;
 	size?: "lg" | "md" | "sm";
 }) {
-	const emoji = { lg: "text-[6.5rem]", md: "text-5xl", sm: "text-3xl" }[size];
-	const svg = { lg: "h-32 w-32", md: "h-14 w-14", sm: "h-9 w-9" }[size];
+	// lg lives on the card back, a size container: scale with its height.
+	const emoji = {
+		lg: "text-[min(6.5rem,21cqh)]",
+		md: "text-5xl",
+		sm: "text-3xl",
+	}[size];
+	const svg = {
+		lg: "h-[min(8rem,25cqh)] w-[min(8rem,25cqh)]",
+		md: "h-14 w-14",
+		sm: "h-9 w-9",
+	}[size];
 	if (word.pic) {
 		return (
 			<span className={`${emoji} leading-none`} aria-hidden>

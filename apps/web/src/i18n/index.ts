@@ -26,6 +26,8 @@ const es = {
 		back: "Volver",
 		hint: "Toca para ver · desliza para responder",
 		listen: "Escuchar",
+		listenSlow: "Más despacio",
+		sayLabel: "se dice",
 		again: "Otra vez",
 		know: "La sé",
 		stampKnow: "LA SÉ",
