@@ -25,7 +25,9 @@ const tabs = [
 
 /** Inside a deck it's just cards, so the bar hides there. */
 export const isDeckPath = (p: string) =>
-	p.startsWith("/aprender/") || /^\/repasar\/[^/]+/.test(p);
+	p.startsWith("/aprender/") ||
+	/^\/repasar\/[^/]+/.test(p) ||
+	p.startsWith("/bot");
 
 export function TabBar() {
 	const path = useRouterState({ select: (s) => s.location.pathname });
