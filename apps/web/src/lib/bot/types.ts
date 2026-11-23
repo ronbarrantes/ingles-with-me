@@ -9,6 +9,8 @@ export interface WordScore {
 	accuracy: number;
 	/** e.g. "None", "Mispronunciation", "Omission", "Insertion". */
 	error: string;
+	/** What sounded off, e.g. "th sounded like t". */
+	note?: string;
 }
 
 /** What she said in one turn. Scores are absent when she typed, or no scoring engine ran. */
@@ -49,20 +51,35 @@ export interface ReplyRequest {
 	latest: Attempt | null;
 }
 
+export interface Meta {
+	model: string;
+	ms: number;
+	inputTokens: number;
+	outputTokens: number;
+	/** null when the price of the model isn't known. */
+	costUsd: number | null;
+}
+
 export interface ReplyResponse {
 	reply: TutorReply;
-	meta: {
-		model: string;
-		ms: number;
-		inputTokens: number;
-		outputTokens: number;
-		costUsd: number;
-	};
+	meta: Meta;
+}
+
+export interface HearResponse {
+	attempt: Attempt;
+	meta: Meta;
+}
+
+export interface RoleStatus {
+	ready: boolean;
+	/** "provider:model" */
+	label: string;
 }
 
 export interface BotStatus {
-	tutor: boolean;
-	speech: boolean;
+	teacher: RoleStatus;
+	judge: RoleStatus;
+	voice: RoleStatus;
 	passcode: boolean;
-	model: string;
+	mock: boolean;
 }

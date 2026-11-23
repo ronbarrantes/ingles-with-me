@@ -1,73 +1,93 @@
-// Speaking Sam's replies: Azure's natural multilingual voice, or the phone's
-// built-in voice as a fallback.
+// Speaking Sam's replies: the server's voice (Google Text-to-Speech) when it's
+// configured, otherwise, or if it fails, the phone's built-in voice.
 
-import { speak as browserSpeak } from "#/lib/speech";
-import { fetchSpeechToken } from "./api";
-import { loadSpeechSdk } from "./ears";
+import { speak as phoneSpeak } from "#/lib/speech";
+import { fetchSpeech } from "./api";
 
-export interface Voice {
-	speak(text: string): Promise<void>;
-	stop(): void;
+// A short silent WAV, played on the first tap so iPhones allow audio later.
+function silentWav() {
+	const samples = 1600; // 0.1 s at 16 kHz
+	const v = new DataView(new ArrayBuffer(44 + samples * 2));
+	const text = (at: number, str: string) => {
+		for (let i = 0; i < str.length; i++) v.setUint8(at + i, str.charCodeAt(i));
+	};
+	text(0, "RIFF");
+	v.setUint32(4, 36 + samples * 2, true);
+	text(8, "WAVE");
+	text(12, "fmt ");
+	v.setUint32(16, 16, true);
+	v.setUint16(20, 1, true);
+	v.setUint16(22, 1, true);
+	v.setUint32(24, 16000, true);
+	v.setUint32(28, 32000, true);
+	v.setUint16(32, 2, true);
+	v.setUint16(34, 16, true);
+	text(36, "data");
+	v.setUint32(40, samples * 2, true);
+	let bin = "";
+	for (const b of new Uint8Array(v.buffer)) bin += String.fromCharCode(b);
+	return `data:audio/wav;base64,${btoa(bin)}`;
 }
 
-const AZURE_VOICE = "en-US-AvaMultilingualNeural";
+export class Voice {
+	private audio?: HTMLAudioElement;
+	private stopped?: () => void;
+	private useServer: boolean;
 
-export class AzureVoice implements Voice {
-	private token?: { token: string; region: string; at: number };
-	private stopCurrent?: () => void;
+	constructor(useServer: boolean) {
+		this.useServer = useServer;
+	}
 
-	private async auth() {
-		if (!this.token || Date.now() - this.token.at > 8 * 60_000) {
-			this.token = { ...(await fetchSpeechToken()), at: Date.now() };
-		}
-		return this.token;
+	/** Call from a tap, before the first speak(). */
+	unlock() {
+		this.audio ??= new Audio();
+		this.audio.src = silentWav();
+		void this.audio.play().catch(() => {});
 	}
 
 	async speak(text: string) {
-		const sdk = await loadSpeechSdk();
-		const { token, region } = await this.auth();
-		const config = sdk.SpeechConfig.fromAuthorizationToken(token, region);
-		config.speechSynthesisVoiceName = AZURE_VOICE;
-		const player = new sdk.SpeakerAudioDestination();
-		const synth = new sdk.SpeechSynthesizer(
-			config,
-			sdk.AudioConfig.fromSpeakerOutput(player),
-		);
-		await new Promise<void>((done) => {
-			const finish = () => {
-				this.stopCurrent = undefined;
-				synth.close();
-				done();
-			};
-			// Resolve when the audio has finished playing, not when it's synthesized.
-			player.onAudioEnd = finish;
-			this.stopCurrent = () => {
-				player.pause();
-				finish();
-			};
-			synth.speakTextAsync(
-				text,
-				(result) => {
-					if (result.reason !== sdk.ResultReason.SynthesizingAudioCompleted)
-						finish();
-				},
-				() => finish(),
-			);
-		});
+		if (this.useServer) {
+			try {
+				return await this.playServer(text);
+			} catch {
+				// Fall through to the phone voice.
+			}
+		}
+		await this.playPhone(text);
 	}
 
 	stop() {
-		this.stopCurrent?.();
+		this.audio?.pause();
+		if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+		this.stopped?.();
 	}
-}
 
-export class BrowserVoice implements Voice {
-	speak(text: string) {
+	private async playServer(text: string) {
+		const blob = await fetchSpeech(text);
+		const url = URL.createObjectURL(blob);
+		this.audio ??= new Audio();
+		const audio = this.audio;
+		try {
+			await new Promise<void>((done, fail) => {
+				this.stopped = done;
+				audio.onended = () => done();
+				audio.onerror = () => fail(new Error("audio playback failed"));
+				audio.src = url;
+				audio.play().catch(fail);
+			});
+		} finally {
+			this.stopped = undefined;
+			URL.revokeObjectURL(url);
+		}
+	}
+
+	private playPhone(text: string) {
 		return new Promise<void>((done) => {
 			if (typeof window === "undefined" || !("speechSynthesis" in window))
 				return done();
-			browserSpeak(text, 0.95);
-			// Wait for the utterance queued by speak() to start, then to finish.
+			this.stopped = done;
+			phoneSpeak(text, 0.95);
+			// Wait for the utterance to start, then to finish.
 			setTimeout(() => {
 				const check = setInterval(() => {
 					if (
@@ -75,14 +95,11 @@ export class BrowserVoice implements Voice {
 						!window.speechSynthesis.pending
 					) {
 						clearInterval(check);
+						this.stopped = undefined;
 						done();
 					}
 				}, 200);
 			}, 500);
 		});
-	}
-
-	stop() {
-		if (typeof window !== "undefined") window.speechSynthesis?.cancel();
 	}
 }

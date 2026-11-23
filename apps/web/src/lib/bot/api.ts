@@ -1,6 +1,13 @@
 // Calls to the /api/bot endpoints. The passcode is kept on this device only.
 
-import type { Attempt, BotStatus, ReplyResponse, Topic, Turn } from "./types";
+import type {
+	Attempt,
+	BotStatus,
+	HearResponse,
+	ReplyResponse,
+	Topic,
+	Turn,
+} from "./types";
 
 const KEY = "iwm:bot-passcode";
 
@@ -29,33 +36,41 @@ export class BotError extends Error {
 	}
 }
 
-async function post<T>(path: string, body?: unknown): Promise<T> {
+async function post(path: string, body: unknown) {
 	const res = await fetch(path, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
 			"x-bot-passcode": getPasscode(),
 		},
-		body: body === undefined ? undefined : JSON.stringify(body),
+		body: JSON.stringify(body),
 	});
-	const data = await res.json().catch(() => ({}));
-	if (!res.ok)
+	if (!res.ok) {
+		const data = await res.json().catch(() => ({}));
 		throw new BotError(
 			data.error ?? `http_${res.status}`,
 			data.missing,
 			data.message,
 		);
-	return data as T;
+	}
+	return res;
 }
 
 export const fetchStatus = async (): Promise<BotStatus> =>
 	(await fetch("/api/bot/status")).json();
 
-export const fetchSpeechToken = () =>
-	post<{ token: string; region: string }>("/api/bot/token");
+export const fetchHear = async (
+	audio: string,
+	caption: string,
+): Promise<HearResponse> =>
+	(await post("/api/bot/hear", { audio, caption })).json();
 
-export const fetchReply = (
+export const fetchReply = async (
 	topic: Topic,
 	history: Turn[],
 	latest: Attempt | null,
-) => post<ReplyResponse>("/api/bot/reply", { topic, history, latest });
+): Promise<ReplyResponse> =>
+	(await post("/api/bot/reply", { topic, history, latest })).json();
+
+export const fetchSpeech = async (text: string): Promise<Blob> =>
+	(await post("/api/bot/speak", { text })).blob();

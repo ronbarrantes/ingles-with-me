@@ -1,32 +1,48 @@
-// Which teacher answers. Swap the model with TUTOR_MODEL (e.g. claude-haiku-5-5,
-// claude-opus-5-5); a different provider is a new file next to anthropic.ts.
+// The teacher: picks the provider from TEACHER ("provider:model").
+// To add a provider, write a file next to anthropic.ts / google.ts with the
+// same `reply` signature and add it below.
 
 import type { Attempt, Topic, Turn, TutorReply } from "#/lib/bot/types";
+import { label, mocked, teacherSpec } from "../config";
+import { googleReady } from "../google";
 import { reply as anthropicReply } from "./anthropic";
+import { reply as googleReply } from "./google";
 
-export const tutorModel = () => process.env.TUTOR_MODEL || "claude-sonnet-5-5";
+type Result = {
+	reply: TutorReply;
+	inputTokens: number;
+	outputTokens: number;
+	costUsd: number | null;
+};
 
-/** TUTOR_MOCK=1 answers without any API (for testing the page without keys). */
-const mocked = () => process.env.TUTOR_MOCK === "1";
+const providers: Record<
+	string,
+	{ ready: () => boolean; reply: typeof anthropicReply | typeof googleReply }
+> = {
+	anthropic: {
+		ready: () => Boolean(process.env.ANTHROPIC_API_KEY),
+		reply: anthropicReply,
+	},
+	google: { ready: googleReady, reply: googleReply },
+};
 
-export const tutorReady = () =>
-	mocked() || Boolean(process.env.ANTHROPIC_API_KEY);
+export const teacherLabel = () => label(teacherSpec());
+export const teacherReady = () =>
+	mocked() || Boolean(providers[teacherSpec().provider]?.ready());
 
 export async function tutorReply(
 	topic: Topic,
 	history: Turn[],
 	latest: Attempt | null,
-) {
+): Promise<Result> {
 	if (mocked()) return mockReply(latest);
-	return anthropicReply(tutorModel(), topic, history, latest);
+	const { provider, model } = teacherSpec();
+	const p = providers[provider];
+	if (!p) throw new Error(`unknown teacher provider "${provider}"`);
+	return p.reply(model, topic, history, latest);
 }
 
-function mockReply(latest: Attempt | null): {
-	reply: TutorReply;
-	inputTokens: number;
-	outputTokens: number;
-	costUsd: number;
-} {
+function mockReply(latest: Attempt | null): Result {
 	const weak = latest?.words?.filter((w) => w.accuracy < 70)[0];
 	const reply: TutorReply = !latest
 		? {
@@ -41,7 +57,7 @@ function mockReply(latest: Attempt | null): {
 						{
 							word: weak.word,
 							heard: "",
-							tip: "(prueba) Dilo despacio, sílaba por sílaba.",
+							tip: weak.note ?? "(prueba) Dilo despacio.",
 						},
 					],
 					new_words: [],

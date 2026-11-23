@@ -3,26 +3,23 @@ import { useEffect, useRef, useState } from "react";
 import { onColor } from "#/components/Art";
 import {
 	BotError,
+	fetchHear,
 	fetchReply,
 	fetchStatus,
 	getPasscode,
 	setPasscode,
 } from "#/lib/bot/api";
-import {
-	AzureEars,
-	BrowserEars,
-	browserEarsAvailable,
-	type Ears,
-} from "#/lib/bot/ears";
+import { Captions, captionsAvailable } from "#/lib/bot/captions";
+import { Mic } from "#/lib/bot/mic";
 import type {
 	Attempt,
 	BotStatus,
-	ReplyResponse,
+	Meta,
 	Topic,
 	Turn,
 	TutorReply,
 } from "#/lib/bot/types";
-import { AzureVoice, BrowserVoice, type Voice } from "#/lib/bot/voice";
+import { Voice } from "#/lib/bot/voice";
 
 // Hidden for now: not linked anywhere, not indexed.
 export const Route = createFileRoute("/bot")({
@@ -37,17 +34,18 @@ const TOPICS: { id: Topic; label: string; emoji: string; color: string }[] = [
 	{ id: "casa", label: "Casa", emoji: "🏠", color: "#E4572E" },
 ];
 
-type Mode = "idle" | "listening" | "thinking" | "speaking";
+type Mode = "idle" | "listening" | "hearing" | "thinking" | "speaking";
 
 const FACE: Record<Mode, { emoji: string; label: string }> = {
 	idle: { emoji: "😊", label: "Toca «Hablar» para empezar" },
 	listening: { emoji: "👂", label: "Te escucho…" },
+	hearing: { emoji: "🎧", label: "Revisando tu pronunciación…" },
 	thinking: { emoji: "🤔", label: "Pensando…" },
 	speaking: { emoji: "🗣️", label: "Sam está hablando" },
 };
 
 const scoreColor = (n: number) =>
-	n >= 80 ? "#3BB273" : n >= 60 ? "#F3A712" : "#E4572E";
+	n >= 75 ? "#3BB273" : n >= 60 ? "#F3A712" : "#E4572E";
 
 function Bot() {
 	const [status, setStatus] = useState<BotStatus | null>(null);
@@ -59,15 +57,17 @@ function Bot() {
 	const [partial, setPartial] = useState("");
 	const [typed, setTyped] = useState("");
 	const [error, setError] = useState("");
-	const [meta, setMeta] = useState<ReplyResponse["meta"] | null>(null);
+	const [note, setNote] = useState("");
+	const [timing, setTiming] = useState<{ judge?: Meta; teacher?: Meta }>({});
 	const [spent, setSpent] = useState(0);
-	const [earsNote, setEarsNote] = useState("");
 
 	// Refs so async callbacks always see the latest values.
 	const turnsRef = useRef<Turn[]>([]);
 	const handsFreeRef = useRef(false);
 	const topicRef = useRef<Topic>("libre");
-	const ears = useRef<Ears | null>(null);
+	const statusRef = useRef<BotStatus | null>(null);
+	const mic = useRef<Mic | null>(null);
+	const captions = useRef<Captions | null>(null);
 	const voice = useRef<Voice | null>(null);
 	const busy = useRef(false);
 	const wakeLock = useRef<{ release: () => Promise<void> } | null>(null);
@@ -79,6 +79,7 @@ function Bot() {
 		fetchStatus()
 			.then((s) => {
 				setStatus(s);
+				statusRef.current = s;
 				setLocked(s.passcode && !getPasscode());
 			})
 			.catch(() => setError("No pude conectar con el servidor."));
@@ -104,10 +105,7 @@ function Bot() {
 		} else setError(e instanceof Error ? e.message : String(e));
 	};
 
-	const stopListening = async () => {
-		setPartial("");
-		await ears.current?.stop();
-	};
+	const addCost = (m: Meta) => setSpent((s) => s + (m.costUsd ?? 0));
 
 	// Ask Sam for the next line (latest = null opens the conversation), then say it.
 	async function askSam(latest: Attempt | null) {
@@ -120,8 +118,8 @@ function Bot() {
 			setMode("thinking");
 			const res = await fetchReply(topicRef.current, history, latest);
 			pushTurn({ role: "tutor", reply: res.reply });
-			setMeta(res.meta);
-			setSpent((s) => s + res.meta.costUsd);
+			setTiming((t) => ({ ...t, teacher: res.meta }));
+			addCost(res.meta);
 			setMode("speaking");
 			await voice.current?.speak(res.reply.say);
 		} catch (e) {
@@ -135,54 +133,66 @@ function Bot() {
 		} finally {
 			busy.current = false;
 			setMode("idle");
-			if (handsFreeRef.current) void listen();
+			if (handsFreeRef.current) listen();
 		}
 	}
 
-	async function listen() {
-		if (!ears.current || !handsFreeRef.current) return;
+	// One spoken turn: record until she stops, have the judge hear it, then ask Sam.
+	function listen() {
+		if (!mic.current || !handsFreeRef.current) return;
 		setMode("listening");
-		try {
-			await ears.current.start({
-				onPartial: setPartial,
-				onUtterance: async (a) => {
-					await stopListening();
-					void askSam(a);
-				},
-				onError: (m) => setError(`Micrófono: ${m}`),
-			});
-		} catch (e) {
-			// Azure failed (bad key, blocked mic…): fall back to the phone's recognition.
-			if (ears.current instanceof AzureEars && browserEarsAvailable()) {
-				ears.current = new BrowserEars();
-				setEarsNote(
-					"Azure no respondió: uso el reconocimiento del teléfono (sin puntajes).",
-				);
-				void listen();
-			} else {
-				handleError(e);
-				setMode("idle");
-			}
-		}
+		setPartial("");
+		captions.current?.start(setPartial);
+		mic.current.listen({
+			onTurn: async (wav) => {
+				const caption = captions.current?.stop() ?? "";
+				setPartial("");
+				let attempt: Attempt | null = null;
+				if (statusRef.current?.judge.ready) {
+					setMode("hearing");
+					try {
+						const res = await fetchHear(wav, caption);
+						attempt = res.attempt;
+						setTiming((t) => ({ ...t, judge: res.meta }));
+						addCost(res.meta);
+					} catch (e) {
+						handleError(e);
+					}
+				}
+				// No judge (or it failed): use the live caption, without scores.
+				if (!attempt && caption) attempt = { text: caption, lang: "en" };
+				if (!attempt?.text.trim()) {
+					setMode("idle");
+					if (handsFreeRef.current) listen();
+					return;
+				}
+				void askSam(attempt);
+			},
+		});
 	}
-
-	const setup = () => {
-		ears.current ??= status?.speech
-			? new AzureEars()
-			: browserEarsAvailable()
-				? new BrowserEars()
-				: null;
-		voice.current ??= status?.speech ? new AzureVoice() : new BrowserVoice();
-		if (!ears.current)
-			setEarsNote("Este navegador no puede escuchar: escribe tus respuestas.");
-		else if (!ears.current.scored)
-			setEarsNote(
-				"Sin Azure: uso el reconocimiento del teléfono, sin puntajes.",
-			);
-	};
 
 	const start = async () => {
-		setup();
+		setError("");
+		voice.current ??= new Voice(Boolean(statusRef.current?.voice.ready));
+		voice.current.unlock();
+		captions.current ??= new Captions();
+		try {
+			mic.current ??= new Mic();
+			await mic.current.open();
+		} catch {
+			mic.current = null;
+			setError(
+				"No pude usar el micrófono. Revisa el permiso, o escribe abajo.",
+			);
+			return;
+		}
+		if (!statusRef.current?.judge.ready) {
+			setNote(
+				captionsAvailable()
+					? "Sin juez: uso el reconocimiento del teléfono, sin puntajes."
+					: "Sin juez ni reconocimiento del teléfono: escribe tus respuestas.",
+			);
+		}
 		handsFreeRef.current = true;
 		setHandsFree(true);
 		try {
@@ -196,41 +206,46 @@ function Bot() {
 			// The screen may dim; the conversation still works.
 		}
 		if (turnsRef.current.length === 0) await askSam(null);
-		else void listen();
+		else listen();
 	};
 
-	const pause = async () => {
+	const pause = () => {
 		handsFreeRef.current = false;
 		setHandsFree(false);
 		voice.current?.stop();
-		await stopListening();
+		mic.current?.pause();
+		captions.current?.stop();
+		setPartial("");
 		setMode("idle");
 		void wakeLock.current?.release();
 		wakeLock.current = null;
 	};
 
-	const sendTyped = async () => {
+	const sendTyped = () => {
 		const text = typed.trim();
 		if (!text) return;
-		setup();
+		voice.current ??= new Voice(Boolean(statusRef.current?.voice.ready));
+		voice.current.unlock();
 		setTyped("");
-		await stopListening();
+		mic.current?.pause();
+		captions.current?.stop();
 		void askSam({ text });
 	};
 
-	const changeTopic = async (t: Topic) => {
-		await pause();
+	const changeTopic = (t: Topic) => {
+		pause();
 		topicRef.current = t;
 		setTopic(t);
 		turnsRef.current = [];
 		setTurns([]);
-		setMeta(null);
+		setTiming({});
 	};
 
 	useEffect(
 		() => () => {
 			handsFreeRef.current = false;
-			void ears.current?.stop();
+			mic.current?.close();
+			captions.current?.stop();
 			voice.current?.stop();
 		},
 		[],
@@ -242,12 +257,14 @@ function Bot() {
 
 	const missing = status
 		? [
-				!status.tutor && "ANTHROPIC_API_KEY",
-				!status.speech && "AZURE_SPEECH_KEY + AZURE_SPEECH_REGION",
+				!status.teacher.ready && `maestro (${status.teacher.label})`,
+				!status.judge.ready && `juez (${status.judge.label})`,
+				!status.voice.ready && !status.mock && `voz (${status.voice.label})`,
 				!status.passcode && "BOT_PASSCODE",
 			].filter(Boolean)
 		: [];
 	const face = FACE[mode];
+	const fmt = (m?: Meta) => (m ? `${(m.ms / 1000).toFixed(1)}s` : "–");
 
 	return (
 		<div className="mx-auto flex h-dvh max-w-md flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
@@ -265,9 +282,10 @@ function Bot() {
 				</span>
 			</header>
 
-			{missing.length > 0 && (
+			{(missing.length > 0 || status?.mock) && (
 				<p className="mx-5 mt-3 border-2 border-dashed border-line px-3 py-2 text-xs text-muted">
-					Falta configurar: {missing.join(" · ")}
+					{status?.mock ? "Modo de prueba (respuestas falsas). " : ""}
+					{missing.length > 0 && `Sin configurar: ${missing.join(" · ")}`}
 				</p>
 			)}
 
@@ -307,7 +325,9 @@ function Bot() {
 				</span>
 				<div className="min-w-0">
 					<p className="text-xl font-extrabold">Sam</p>
-					<p className="truncate text-sm text-muted">{face.label}</p>
+					<p className="truncate text-sm text-muted" aria-live="polite">
+						{face.label}
+					</p>
 				</div>
 			</div>
 
@@ -336,12 +356,12 @@ function Bot() {
 				<div ref={end} />
 			</div>
 
-			{(error || earsNote) && (
+			{(error || note) && (
 				<p
 					className="px-5 pb-2 text-xs"
 					style={{ color: error ? "#E4572E" : "var(--muted)" }}
 				>
-					{error || earsNote}
+					{error || note}
 				</p>
 			)}
 
@@ -363,7 +383,7 @@ function Bot() {
 					className="mt-2 flex gap-2"
 					onSubmit={(e) => {
 						e.preventDefault();
-						void sendTyped();
+						sendTyped();
 					}}
 				>
 					<input
@@ -381,10 +401,13 @@ function Bot() {
 						Enviar
 					</button>
 				</form>
-				{meta && (
+				{(timing.judge || timing.teacher) && (
 					<p className="mt-2 text-center text-[11px] text-muted tabular-nums">
-						{meta.model} · {(meta.ms / 1000).toFixed(1)}s · {meta.inputTokens}→
-						{meta.outputTokens} tokens · ${meta.costUsd.toFixed(4)}
+						{timing.judge &&
+							`juez ${timing.judge.model} ${fmt(timing.judge)} · `}
+						maestro {timing.teacher?.model} {fmt(timing.teacher)}
+						{timing.teacher?.costUsd != null &&
+							` · $${timing.teacher.costUsd.toFixed(4)}`}
 					</p>
 				)}
 			</div>
