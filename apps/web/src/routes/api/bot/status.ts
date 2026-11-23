@@ -1,18 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { BotStatus } from "#/lib/bot/types";
-import { speechReady } from "#/server/speech";
-import { tutorModel, tutorReady } from "#/server/tutor";
+import { mocked } from "#/server/config";
+import { judgeLabel, judgeReady } from "#/server/judge";
+import { teacherLabel, teacherReady } from "#/server/tutor";
+import { voiceLabel, voiceReady } from "#/server/voice";
 
-// Which services are configured. Booleans only, never secrets.
+// Which roles are configured, and with what. Never secrets.
 export const Route = createFileRoute("/api/bot/status")({
 	server: {
 		handlers: {
 			GET: async () => {
 				const status: BotStatus = {
-					tutor: tutorReady(),
-					speech: speechReady(),
+					teacher: { ready: teacherReady(), label: teacherLabel() },
+					judge: { ready: judgeReady(), label: judgeLabel() },
+					voice: { ready: voiceReady(), label: voiceLabel() },
 					passcode: Boolean(process.env.BOT_PASSCODE),
-					model: tutorModel(),
+					mock: mocked(),
 				};
 				return Response.json(status, {
 					headers: { "Cache-Control": "no-store" },

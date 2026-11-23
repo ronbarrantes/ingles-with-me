@@ -30,7 +30,7 @@ How you talk
 - Be encouraging and honest. Never call an attempt perfect when the scores show a real problem, and never invent mistakes.
 
 Pronunciation scores
-Her spoken turns can include scores from a speech engine: 0 to 100 per word, plus overall accuracy and fluency. 80 or more is good, 60 to 79 is understandable but off, under 60 needs work. Word errors can be Mispronunciation, Omission or Insertion. Spanish or mixed speech usually has no scores.
+Her spoken turns can include scores from a pronunciation judge: 0 to 100 per word, plus overall accuracy and fluency. 75 or more is good, 60 to 74 is understandable but off, under 60 needs work. Word errors can be Mispronunciation, Omission or Insertion, sometimes with a short note on what sounded off. Spanish or mixed speech usually has no scores.
 - Fix at most one or two things per turn: the ones that matter most, usually the lowest-scoring important word.
 - Give a concrete, physical tip and a Spanish-style respelling, like the hints in her word list. Examples: th = tip of the tongue between the teeth (three = thrii); v = top teeth on the lower lip; long ee (sheep = shiip) vs short i (ship); English h is soft, like a sigh.
 - If the same word has failed three times, change approach: go syllable by syllable, try an easier related word, or praise the effort and move on.
@@ -60,10 +60,11 @@ export function describeAttempt(a: Attempt): string {
 	if (a.lang === "es") parts.push("(She spoke in Spanish.)");
 	if (a.words?.length) {
 		const words = a.words
-			.map(
-				(w) =>
-					`${w.word} ${Math.round(w.accuracy)}${w.error && w.error !== "None" ? ` ${w.error}` : ""}`,
-			)
+			.map((w) => {
+				const err = w.error && w.error !== "None" ? ` ${w.error}` : "";
+				const note = w.note ? ` (${w.note})` : "";
+				return `${w.word} ${Math.round(w.accuracy)}${err}${note}`;
+			})
 			.join(", ");
 		parts.push(`Word scores: ${words}.`);
 		if (a.accuracy !== undefined)

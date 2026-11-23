@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import type { ReplyResponse } from "#/lib/bot/types";
 import { checkPasscode } from "#/server/guard";
-import { tutorModel, tutorReady, tutorReply } from "#/server/tutor";
+import { teacherLabel, teacherReady, tutorReply } from "#/server/tutor";
 
 // Bounded input: no huge histories or texts reach the model.
 const AttemptSchema = z.object({
@@ -14,6 +14,7 @@ const AttemptSchema = z.object({
 				word: z.string().max(60),
 				accuracy: z.number(),
 				error: z.string().max(40),
+				note: z.string().max(120).optional(),
 			}),
 		)
 		.max(80)
@@ -21,7 +22,7 @@ const AttemptSchema = z.object({
 	accuracy: z.number().optional(),
 	fluency: z.number().optional(),
 });
-const ReplySchema = z.object({
+const TutorReplySchema = z.object({
 	say: z.string().max(1200),
 	corrections: z
 		.array(z.object({ word: z.string(), heard: z.string(), tip: z.string() }))
@@ -34,7 +35,7 @@ const RequestSchema = z.object({
 		.array(
 			z.discriminatedUnion("role", [
 				z.object({ role: z.literal("learner"), attempt: AttemptSchema }),
-				z.object({ role: z.literal("tutor"), reply: ReplySchema }),
+				z.object({ role: z.literal("tutor"), reply: TutorReplySchema }),
 			]),
 		)
 		.max(40),
@@ -47,9 +48,12 @@ export const Route = createFileRoute("/api/bot/reply")({
 			POST: async ({ request }) => {
 				const denied = checkPasscode(request);
 				if (denied) return denied;
-				if (!tutorReady()) {
+				if (!teacherReady()) {
+					const missing = teacherLabel().startsWith("google")
+						? "GOOGLE_SERVICE_ACCOUNT_JSON"
+						: "ANTHROPIC_API_KEY";
 					return Response.json(
-						{ error: "not_configured", missing: ["ANTHROPIC_API_KEY"] },
+						{ error: "not_configured", missing: [missing] },
 						{ status: 503 },
 					);
 				}
@@ -65,7 +69,7 @@ export const Route = createFileRoute("/api/bot/reply")({
 					const body: ReplyResponse = {
 						reply: r.reply,
 						meta: {
-							model: tutorModel(),
+							model: teacherLabel(),
 							ms: Date.now() - started,
 							inputTokens: r.inputTokens,
 							outputTokens: r.outputTokens,
@@ -74,9 +78,9 @@ export const Route = createFileRoute("/api/bot/reply")({
 					};
 					return Response.json(body);
 				} catch (e) {
-					console.error("tutor error", e);
+					console.error("teacher error", e);
 					return Response.json(
-						{ error: "tutor_error", message: String(e) },
+						{ error: "teacher_error", message: String(e) },
 						{ status: 502 },
 					);
 				}

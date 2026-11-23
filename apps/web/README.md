@@ -19,7 +19,17 @@ pnpm check
 
 ## /bot (stage 1: conversation partner)
 
-Hidden page (not linked) where you talk with Sam: Azure AI Speech listens, scores
-pronunciation and speaks; Claude teaches. Keys stay on the server (`src/server/`).
-See `.env.example` for the environment variables. Swap the teacher's model with
-`TUTOR_MODEL`; a different provider is a new file next to `src/server/tutor/anthropic.ts`.
+Hidden page (not linked) where you talk with Sam. Four swappable roles, each an
+env var in the form `provider:model` (see `.env.example`):
+
+- **Ears** (on the phone): `src/lib/bot/mic.ts` records each turn and detects
+  when she stops; live captions from the browser's recognition (best effort).
+- **Judge** (`JUDGE`, `src/server/judge/`): transcribes the turn (English or
+  Spanish) and scores pronunciation per word. Default: Gemini on Vertex AI.
+- **Teacher** (`TEACHER`, `src/server/tutor/`): decides what Sam says.
+  Default: Claude Sonnet 5.5; a Gemini teacher is included for comparison.
+- **Voice** (`VOICE`, `src/server/voice/`): Google Text-to-Speech, with the
+  phone's voice as a fallback.
+
+To add a provider for a role, add a file next to the existing ones and
+register it in that folder's `index.ts`. Keys stay on the server.

@@ -16,9 +16,10 @@ import { Route as RepasarRouteImport } from './routes/repasar'
 import { Route as AprenderGroupRouteImport } from './routes/aprender.$group'
 import { Route as RepasarIndexRouteImport } from './routes/repasar.index'
 import { Route as RepasarListRouteImport } from './routes/repasar.$list'
+import { Route as ApiBotHearRouteImport } from './routes/api/bot/hear'
 import { Route as ApiBotReplyRouteImport } from './routes/api/bot/reply'
+import { Route as ApiBotSpeakRouteImport } from './routes/api/bot/speak'
 import { Route as ApiBotStatusRouteImport } from './routes/api/bot/status'
-import { Route as ApiBotTokenRouteImport } from './routes/api/bot/token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -55,19 +56,24 @@ const RepasarListRoute = RepasarListRouteImport.update({
   path: '/$list',
   getParentRoute: () => RepasarRoute,
 } as any)
+const ApiBotHearRoute = ApiBotHearRouteImport.update({
+  id: '/api/bot/hear',
+  path: '/api/bot/hear',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBotReplyRoute = ApiBotReplyRouteImport.update({
   id: '/api/bot/reply',
   path: '/api/bot/reply',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBotSpeakRoute = ApiBotSpeakRouteImport.update({
+  id: '/api/bot/speak',
+  path: '/api/bot/speak',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBotStatusRoute = ApiBotStatusRouteImport.update({
   id: '/api/bot/status',
   path: '/api/bot/status',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiBotTokenRoute = ApiBotTokenRouteImport.update({
-  id: '/api/bot/token',
-  path: '/api/bot/token',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -79,9 +85,10 @@ export interface FileRoutesByFullPath {
   '/aprender/$group': typeof AprenderGroupRoute
   '/repasar/$list': typeof RepasarListRoute
   '/repasar/': typeof RepasarIndexRoute
+  '/api/bot/hear': typeof ApiBotHearRoute
   '/api/bot/reply': typeof ApiBotReplyRoute
+  '/api/bot/speak': typeof ApiBotSpeakRoute
   '/api/bot/status': typeof ApiBotStatusRoute
-  '/api/bot/token': typeof ApiBotTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -90,9 +97,10 @@ export interface FileRoutesByTo {
   '/aprender/$group': typeof AprenderGroupRoute
   '/repasar/$list': typeof RepasarListRoute
   '/repasar': typeof RepasarIndexRoute
+  '/api/bot/hear': typeof ApiBotHearRoute
   '/api/bot/reply': typeof ApiBotReplyRoute
+  '/api/bot/speak': typeof ApiBotSpeakRoute
   '/api/bot/status': typeof ApiBotStatusRoute
-  '/api/bot/token': typeof ApiBotTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,9 +111,10 @@ export interface FileRoutesById {
   '/aprender/$group': typeof AprenderGroupRoute
   '/repasar/$list': typeof RepasarListRoute
   '/repasar/': typeof RepasarIndexRoute
+  '/api/bot/hear': typeof ApiBotHearRoute
   '/api/bot/reply': typeof ApiBotReplyRoute
+  '/api/bot/speak': typeof ApiBotSpeakRoute
   '/api/bot/status': typeof ApiBotStatusRoute
-  '/api/bot/token': typeof ApiBotTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,9 +126,10 @@ export interface FileRouteTypes {
     | '/aprender/$group'
     | '/repasar/$list'
     | '/repasar/'
+    | '/api/bot/hear'
     | '/api/bot/reply'
+    | '/api/bot/speak'
     | '/api/bot/status'
-    | '/api/bot/token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,9 +138,10 @@ export interface FileRouteTypes {
     | '/aprender/$group'
     | '/repasar/$list'
     | '/repasar'
+    | '/api/bot/hear'
     | '/api/bot/reply'
+    | '/api/bot/speak'
     | '/api/bot/status'
-    | '/api/bot/token'
   id:
     | '__root__'
     | '/'
@@ -140,9 +151,10 @@ export interface FileRouteTypes {
     | '/aprender/$group'
     | '/repasar/$list'
     | '/repasar/'
+    | '/api/bot/hear'
     | '/api/bot/reply'
+    | '/api/bot/speak'
     | '/api/bot/status'
-    | '/api/bot/token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -151,9 +163,10 @@ export interface RootRouteChildren {
   PalabrasRoute: typeof PalabrasRoute
   RepasarRoute: typeof RepasarRouteWithChildren
   AprenderGroupRoute: typeof AprenderGroupRoute
+  ApiBotHearRoute: typeof ApiBotHearRoute
   ApiBotReplyRoute: typeof ApiBotReplyRoute
+  ApiBotSpeakRoute: typeof ApiBotSpeakRoute
   ApiBotStatusRoute: typeof ApiBotStatusRoute
-  ApiBotTokenRoute: typeof ApiBotTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -207,6 +220,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepasarListRouteImport
       parentRoute: typeof RepasarRoute
     }
+    '/api/bot/hear': {
+      id: '/api/bot/hear'
+      path: '/api/bot/hear'
+      fullPath: '/api/bot/hear'
+      preLoaderRoute: typeof ApiBotHearRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/bot/reply': {
       id: '/api/bot/reply'
       path: '/api/bot/reply'
@@ -214,18 +234,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBotReplyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/bot/speak': {
+      id: '/api/bot/speak'
+      path: '/api/bot/speak'
+      fullPath: '/api/bot/speak'
+      preLoaderRoute: typeof ApiBotSpeakRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/bot/status': {
       id: '/api/bot/status'
       path: '/api/bot/status'
       fullPath: '/api/bot/status'
       preLoaderRoute: typeof ApiBotStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/bot/token': {
-      id: '/api/bot/token'
-      path: '/api/bot/token'
-      fullPath: '/api/bot/token'
-      preLoaderRoute: typeof ApiBotTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -250,9 +270,10 @@ const rootRouteChildren: RootRouteChildren = {
   PalabrasRoute: PalabrasRoute,
   RepasarRoute: RepasarRouteWithChildren,
   AprenderGroupRoute: AprenderGroupRoute,
+  ApiBotHearRoute: ApiBotHearRoute,
   ApiBotReplyRoute: ApiBotReplyRoute,
+  ApiBotSpeakRoute: ApiBotSpeakRoute,
   ApiBotStatusRoute: ApiBotStatusRoute,
-  ApiBotTokenRoute: ApiBotTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
