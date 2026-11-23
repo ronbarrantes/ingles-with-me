@@ -10,15 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BotRouteImport } from './routes/bot'
 import { Route as PalabrasRouteImport } from './routes/palabras'
 import { Route as RepasarRouteImport } from './routes/repasar'
 import { Route as AprenderGroupRouteImport } from './routes/aprender.$group'
 import { Route as RepasarIndexRouteImport } from './routes/repasar.index'
 import { Route as RepasarListRouteImport } from './routes/repasar.$list'
+import { Route as ApiBotReplyRouteImport } from './routes/api/bot/reply'
+import { Route as ApiBotStatusRouteImport } from './routes/api/bot/status'
+import { Route as ApiBotTokenRouteImport } from './routes/api/bot/token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BotRoute = BotRouteImport.update({
+  id: '/bot',
+  path: '/bot',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PalabrasRoute = PalabrasRouteImport.update({
@@ -46,57 +55,105 @@ const RepasarListRoute = RepasarListRouteImport.update({
   path: '/$list',
   getParentRoute: () => RepasarRoute,
 } as any)
+const ApiBotReplyRoute = ApiBotReplyRouteImport.update({
+  id: '/api/bot/reply',
+  path: '/api/bot/reply',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBotStatusRoute = ApiBotStatusRouteImport.update({
+  id: '/api/bot/status',
+  path: '/api/bot/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBotTokenRoute = ApiBotTokenRouteImport.update({
+  id: '/api/bot/token',
+  path: '/api/bot/token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/bot': typeof BotRoute
   '/palabras': typeof PalabrasRoute
   '/repasar': typeof RepasarRouteWithChildren
   '/aprender/$group': typeof AprenderGroupRoute
   '/repasar/$list': typeof RepasarListRoute
   '/repasar/': typeof RepasarIndexRoute
+  '/api/bot/reply': typeof ApiBotReplyRoute
+  '/api/bot/status': typeof ApiBotStatusRoute
+  '/api/bot/token': typeof ApiBotTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/bot': typeof BotRoute
   '/palabras': typeof PalabrasRoute
   '/aprender/$group': typeof AprenderGroupRoute
   '/repasar/$list': typeof RepasarListRoute
   '/repasar': typeof RepasarIndexRoute
+  '/api/bot/reply': typeof ApiBotReplyRoute
+  '/api/bot/status': typeof ApiBotStatusRoute
+  '/api/bot/token': typeof ApiBotTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/bot': typeof BotRoute
   '/palabras': typeof PalabrasRoute
   '/repasar': typeof RepasarRouteWithChildren
   '/aprender/$group': typeof AprenderGroupRoute
   '/repasar/$list': typeof RepasarListRoute
   '/repasar/': typeof RepasarIndexRoute
+  '/api/bot/reply': typeof ApiBotReplyRoute
+  '/api/bot/status': typeof ApiBotStatusRoute
+  '/api/bot/token': typeof ApiBotTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/bot'
     | '/palabras'
     | '/repasar'
     | '/aprender/$group'
     | '/repasar/$list'
     | '/repasar/'
+    | '/api/bot/reply'
+    | '/api/bot/status'
+    | '/api/bot/token'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/palabras' | '/aprender/$group' | '/repasar/$list' | '/repasar'
+  to:
+    | '/'
+    | '/bot'
+    | '/palabras'
+    | '/aprender/$group'
+    | '/repasar/$list'
+    | '/repasar'
+    | '/api/bot/reply'
+    | '/api/bot/status'
+    | '/api/bot/token'
   id:
     | '__root__'
     | '/'
+    | '/bot'
     | '/palabras'
     | '/repasar'
     | '/aprender/$group'
     | '/repasar/$list'
     | '/repasar/'
+    | '/api/bot/reply'
+    | '/api/bot/status'
+    | '/api/bot/token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BotRoute: typeof BotRoute
   PalabrasRoute: typeof PalabrasRoute
   RepasarRoute: typeof RepasarRouteWithChildren
   AprenderGroupRoute: typeof AprenderGroupRoute
+  ApiBotReplyRoute: typeof ApiBotReplyRoute
+  ApiBotStatusRoute: typeof ApiBotStatusRoute
+  ApiBotTokenRoute: typeof ApiBotTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -106,6 +163,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bot': {
+      id: '/bot'
+      path: '/bot'
+      fullPath: '/bot'
+      preLoaderRoute: typeof BotRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/palabras': {
@@ -143,6 +207,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepasarListRouteImport
       parentRoute: typeof RepasarRoute
     }
+    '/api/bot/reply': {
+      id: '/api/bot/reply'
+      path: '/api/bot/reply'
+      fullPath: '/api/bot/reply'
+      preLoaderRoute: typeof ApiBotReplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/bot/status': {
+      id: '/api/bot/status'
+      path: '/api/bot/status'
+      fullPath: '/api/bot/status'
+      preLoaderRoute: typeof ApiBotStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/bot/token': {
+      id: '/api/bot/token'
+      path: '/api/bot/token'
+      fullPath: '/api/bot/token'
+      preLoaderRoute: typeof ApiBotTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -161,9 +246,13 @@ const RepasarRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BotRoute: BotRoute,
   PalabrasRoute: PalabrasRoute,
   RepasarRoute: RepasarRouteWithChildren,
   AprenderGroupRoute: AprenderGroupRoute,
+  ApiBotReplyRoute: ApiBotReplyRoute,
+  ApiBotStatusRoute: ApiBotStatusRoute,
+  ApiBotTokenRoute: ApiBotTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

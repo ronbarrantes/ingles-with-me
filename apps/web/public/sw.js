@@ -1,6 +1,6 @@
 // Offline support: pages network-first, built assets cache-first,
 // everything else stale-while-revalidate. Bump VERSION to drop old caches.
-const VERSION = "v12";
+const VERSION = "v13";
 const CACHE = `iwm-${VERSION}`;
 const GROUPS = ["todas", "personas", "casa", "mundo", "acciones", "describir", "clave"];
 const LISTS = ["due", "marked", "favorites"];
@@ -70,6 +70,8 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
+  // Live endpoints (the bot) are never cached.
+  if (url.origin === self.location.origin && url.pathname.startsWith("/api/")) return;
   if (request.mode === "navigate") return event.respondWith(networkFirst(request));
   if (url.origin === self.location.origin && url.pathname.startsWith("/assets/"))
     return event.respondWith(cacheFirst(request));

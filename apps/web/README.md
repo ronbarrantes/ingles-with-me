@@ -16,3 +16,10 @@ pnpm dev     # http://localhost:3000
 pnpm build
 pnpm check
 ```
+
+## /bot (stage 1: conversation partner)
+
+Hidden page (not linked) where you talk with Sam: Azure AI Speech listens, scores
+pronunciation and speaks; Claude teaches. Keys stay on the server (`src/server/`).
+See `.env.example` for the environment variables. Swap the teacher's model with
+`TUTOR_MODEL`; a different provider is a new file next to `src/server/tutor/anthropic.ts`.
