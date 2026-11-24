@@ -17,6 +17,7 @@ import { Route as RepasarRouteImport } from './routes/repasar'
 import { Route as AprenderGroupRouteImport } from './routes/aprender.$group'
 import { Route as RepasarIndexRouteImport } from './routes/repasar.index'
 import { Route as RepasarListRouteImport } from './routes/repasar.$list'
+import { Route as ApiBotCheckRouteImport } from './routes/api/bot/check'
 import { Route as ApiBotHearRouteImport } from './routes/api/bot/hear'
 import { Route as ApiBotReplyRouteImport } from './routes/api/bot/reply'
 import { Route as ApiBotSpeakRouteImport } from './routes/api/bot/speak'
@@ -62,6 +63,11 @@ const RepasarListRoute = RepasarListRouteImport.update({
   path: '/$list',
   getParentRoute: () => RepasarRoute,
 } as any)
+const ApiBotCheckRoute = ApiBotCheckRouteImport.update({
+  id: '/api/bot/check',
+  path: '/api/bot/check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBotHearRoute = ApiBotHearRouteImport.update({
   id: '/api/bot/hear',
   path: '/api/bot/hear',
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/aprender/$group': typeof AprenderGroupRoute
   '/repasar/$list': typeof RepasarListRoute
   '/repasar/': typeof RepasarIndexRoute
+  '/api/bot/check': typeof ApiBotCheckRoute
   '/api/bot/hear': typeof ApiBotHearRoute
   '/api/bot/reply': typeof ApiBotReplyRoute
   '/api/bot/speak': typeof ApiBotSpeakRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/aprender/$group': typeof AprenderGroupRoute
   '/repasar/$list': typeof RepasarListRoute
   '/repasar': typeof RepasarIndexRoute
+  '/api/bot/check': typeof ApiBotCheckRoute
   '/api/bot/hear': typeof ApiBotHearRoute
   '/api/bot/reply': typeof ApiBotReplyRoute
   '/api/bot/speak': typeof ApiBotSpeakRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/aprender/$group': typeof AprenderGroupRoute
   '/repasar/$list': typeof RepasarListRoute
   '/repasar/': typeof RepasarIndexRoute
+  '/api/bot/check': typeof ApiBotCheckRoute
   '/api/bot/hear': typeof ApiBotHearRoute
   '/api/bot/reply': typeof ApiBotReplyRoute
   '/api/bot/speak': typeof ApiBotSpeakRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/aprender/$group'
     | '/repasar/$list'
     | '/repasar/'
+    | '/api/bot/check'
     | '/api/bot/hear'
     | '/api/bot/reply'
     | '/api/bot/speak'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/aprender/$group'
     | '/repasar/$list'
     | '/repasar'
+    | '/api/bot/check'
     | '/api/bot/hear'
     | '/api/bot/reply'
     | '/api/bot/speak'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/aprender/$group'
     | '/repasar/$list'
     | '/repasar/'
+    | '/api/bot/check'
     | '/api/bot/hear'
     | '/api/bot/reply'
     | '/api/bot/speak'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   PalabrasRoute: typeof PalabrasRoute
   RepasarRoute: typeof RepasarRouteWithChildren
   AprenderGroupRoute: typeof AprenderGroupRoute
+  ApiBotCheckRoute: typeof ApiBotCheckRoute
   ApiBotHearRoute: typeof ApiBotHearRoute
   ApiBotReplyRoute: typeof ApiBotReplyRoute
   ApiBotSpeakRoute: typeof ApiBotSpeakRoute
@@ -240,6 +253,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepasarListRouteImport
       parentRoute: typeof RepasarRoute
     }
+    '/api/bot/check': {
+      id: '/api/bot/check'
+      path: '/api/bot/check'
+      fullPath: '/api/bot/check'
+      preLoaderRoute: typeof ApiBotCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/bot/hear': {
       id: '/api/bot/hear'
       path: '/api/bot/hear'
@@ -291,6 +311,7 @@ const rootRouteChildren: RootRouteChildren = {
   PalabrasRoute: PalabrasRoute,
   RepasarRoute: RepasarRouteWithChildren,
   AprenderGroupRoute: AprenderGroupRoute,
+  ApiBotCheckRoute: ApiBotCheckRoute,
   ApiBotHearRoute: ApiBotHearRoute,
   ApiBotReplyRoute: ApiBotReplyRoute,
   ApiBotSpeakRoute: ApiBotSpeakRoute,

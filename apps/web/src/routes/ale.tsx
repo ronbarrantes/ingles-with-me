@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { onColor } from "#/components/Art";
 import {
 	BotError,
+	checkSavedPasscode,
 	fetchHear,
 	fetchReply,
 	fetchStatus,
@@ -109,6 +110,8 @@ function Bot() {
 
 	const handleError = (e: unknown) => {
 		if (e instanceof BotError && e.code === "wrong_passcode") {
+			// Stop the hands-free loop, or it keeps retrying behind the lock screen.
+			pause();
 			setPasscode("");
 			setLocked(true);
 			setError("Código incorrecto.");
@@ -514,13 +517,34 @@ function PasscodeScreen({
 	error: string;
 }) {
 	const [code, setCode] = useState("");
+	const [checking, setChecking] = useState(false);
+	const [problem, setProblem] = useState("");
+	const submit = async () => {
+		setChecking(true);
+		setProblem("");
+		setPasscode(code.trim());
+		try {
+			await checkSavedPasscode();
+			onDone();
+		} catch (e) {
+			setPasscode("");
+			setProblem(
+				e instanceof BotError && e.code === "wrong_passcode"
+					? "Código incorrecto."
+					: e instanceof BotError && e.code === "not_configured"
+						? "Falta configurar BOT_PASSCODE en el servidor."
+						: "No pude conectar con el servidor.",
+			);
+		} finally {
+			setChecking(false);
+		}
+	};
 	return (
 		<form
 			className="mx-auto flex h-dvh max-w-md flex-col justify-center gap-4 px-6"
 			onSubmit={(e) => {
 				e.preventDefault();
-				setPasscode(code.trim());
-				onDone();
+				void submit();
 			}}
 		>
 			<h1 className="text-4xl font-extrabold">Habla con Ale</h1>
@@ -530,15 +554,20 @@ function PasscodeScreen({
 				value={code}
 				onChange={(e) => setCode(e.target.value)}
 				autoComplete="off"
+				autoCapitalize="none"
+				autoCorrect="off"
+				spellCheck={false}
 				className="h-12 border-2 border-ink bg-card px-3 outline-none"
 			/>
-			{error && <p className="text-sm text-[#E4572E]">{error}</p>}
+			{(problem || error) && (
+				<p className="text-sm text-[#E4572E]">{problem || error}</p>
+			)}
 			<button
 				type="submit"
 				className="h-13 bg-ink font-extrabold text-paper"
-				disabled={!code.trim()}
+				disabled={!code.trim() || checking}
 			>
-				Entrar
+				{checking ? "Revisando…" : "Entrar"}
 			</button>
 		</form>
 	);
