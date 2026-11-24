@@ -8,6 +8,7 @@ const END_SILENCE_MS = 1_100; // quiet this long after speech = turn over
 const MIN_SPEECH_MS = 350;
 const MAX_TURN_MS = 20_000;
 const PREROLL_CHUNKS = 4; // keep a little audio from before speech started
+const KEEP_TAIL_MS = 250; // of the closing silence; the rest isn't sent
 
 export interface MicHandlers {
 	onSpeechStart?: () => void;
@@ -111,7 +112,9 @@ export class Mic {
 			this.speechMs >= MAX_TURN_MS
 		) {
 			const done = this.handlers;
-			const audio = this.chunks;
+			// Drop most of the closing silence: smaller upload, faster judge.
+			const drop = Math.max(0, Math.floor((this.quietMs - KEEP_TAIL_MS) / ms));
+			const audio = this.chunks.slice(0, this.chunks.length - drop);
 			const total = this.speechMs;
 			this.pause();
 			done.onTurn(toWavBase64(audio, rate), total);

@@ -1,6 +1,7 @@
 // The judge on Gemini (Vertex AI): hears her recording, writes down what she
 // said (English or Spanish) and scores English pronunciation word by word.
 
+import { ThinkingLevel } from "@google/genai";
 import { z } from "zod";
 import type { Attempt } from "#/lib/bot/types";
 import { gemini, geminiSchema } from "../google";
@@ -32,10 +33,25 @@ const INSTRUCTIONS = `You assess the spoken English of an adult whose first lang
 4. If lang is "es", return an empty words list and accuracy and fluency of 0.
 Be consistent: the same recording should get the same scores.`;
 
+// Scoring a short clip doesn't need deep reasoning, and thinking adds seconds.
+// Models that don't take a thinking level get the call without it.
+let thinkingOk = true;
+
 export async function hear(
 	model: string,
 	wavBase64: string,
 ): Promise<{ attempt: Attempt; inputTokens: number; outputTokens: number }> {
+	try {
+		return await call(model, wavBase64, thinkingOk);
+	} catch (e) {
+		if (!thinkingOk || !/thinking/i.test(String(e))) throw e;
+		thinkingOk = false;
+		console.warn("judge: model refused a thinking level; retrying without");
+		return call(model, wavBase64, false);
+	}
+}
+
+async function call(model: string, wavBase64: string, lowThinking: boolean) {
 	const res = await gemini().models.generateContent({
 		model,
 		contents: [
@@ -53,6 +69,9 @@ export async function hear(
 			responseJsonSchema: geminiSchema(JudgeSchema),
 			temperature: 0,
 			maxOutputTokens: 2000,
+			...(lowThinking && {
+				thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+			}),
 		},
 	});
 	const parsed = JudgeSchema.safeParse(JSON.parse(res.text ?? "null"));
