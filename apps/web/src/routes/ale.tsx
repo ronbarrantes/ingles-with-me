@@ -75,6 +75,8 @@ function Bot() {
 	const captions = useRef<Captions | null>(null);
 	const voice = useRef<Voice | null>(null);
 	const busy = useRef(false);
+	// Bumped on every topic change, so a reply to the old chat is dropped.
+	const convo = useRef(0);
 	const wakeLock = useRef<{ release: () => Promise<void> } | null>(null);
 	const end = useRef<HTMLDivElement>(null);
 
@@ -127,6 +129,8 @@ function Bot() {
 		if (busy.current) return;
 		busy.current = true;
 		setError("");
+		const mine = convo.current;
+		const stale = () => mine !== convo.current;
 		try {
 			const history = turnsRef.current;
 			if (latest) pushTurn({ role: "learner", attempt: latest });
@@ -137,6 +141,7 @@ function Bot() {
 				latest,
 				learnerRef.current,
 			);
+			if (stale()) return;
 			// She told Ale her name (or how to say it): remember it on this phone.
 			if (res.reply.learner_name?.name) rememberName(res.reply.learner_name);
 			pushTurn({ role: "tutor", reply: res.reply });
@@ -145,6 +150,7 @@ function Bot() {
 			setMode("speaking");
 			await voice.current?.speak(res.reply.say);
 		} catch (e) {
+			if (stale()) return;
 			// Don't leave her message hanging without a reply; typed text goes back in the box.
 			if (latest) {
 				turnsRef.current = turnsRef.current.slice(0, -1);
@@ -153,9 +159,12 @@ function Bot() {
 			}
 			handleError(e);
 		} finally {
-			busy.current = false;
-			setMode("idle");
-			if (handsFreeRef.current) listen();
+			// A topic change already reset everything for the new chat.
+			if (!stale()) {
+				busy.current = false;
+				setMode("idle");
+				if (handsFreeRef.current) listen();
+			}
 		}
 	}
 
@@ -245,7 +254,8 @@ function Bot() {
 
 	const sendTyped = () => {
 		const text = typed.trim();
-		if (!text) return;
+		// While Ale is busy the text stays in the box (the button is disabled too).
+		if (!text || busy.current) return;
 		voice.current ??= new Voice(Boolean(statusRef.current?.voice.ready));
 		voice.current.unlock();
 		setTyped("");
@@ -256,6 +266,8 @@ function Bot() {
 
 	const changeTopic = (t: Topic) => {
 		pause();
+		convo.current += 1;
+		busy.current = false;
 		topicRef.current = t;
 		setTopic(t);
 		turnsRef.current = [];
@@ -428,7 +440,12 @@ function Bot() {
 					<button
 						type="submit"
 						className="h-11 border-2 border-ink px-4 font-bold"
-						disabled={!typed.trim()}
+						disabled={
+							!typed.trim() ||
+							mode === "thinking" ||
+							mode === "hearing" ||
+							mode === "speaking"
+						}
 					>
 						Enviar
 					</button>

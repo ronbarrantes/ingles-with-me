@@ -1,0 +1,145 @@
+import { expect, open, PASSCODE, test, unlockAle } from "./fixtures";
+
+test.use({
+	permissions: ["microphone"],
+	launchOptions: {
+		args: [
+			"--use-fake-ui-for-media-stream",
+			"--use-fake-device-for-media-stream",
+		],
+	},
+});
+
+test("passcode: wrong code is rejected on the spot", async ({ page }) => {
+	await open(page, "/ale");
+	await page.locator("input[type=password]").pressSequentially("nope");
+	await page.getByRole("button", { name: "Entrar" }).click();
+	await expect(page.getByText("Código incorrecto.")).toBeVisible();
+	await expect(page.getByRole("button", { name: /Hablar/ })).toHaveCount(0);
+});
+
+test("passcode: caps and spaces don't matter, and it's remembered", async ({
+	page,
+}) => {
+	await open(page, "/ale");
+	await page
+		.locator("input[type=password]")
+		.pressSequentially(`  ${PASSCODE.toUpperCase()} `);
+	await page.getByLabel("Mostrar código").check();
+	await expect(page.locator("input[type=text]")).toHaveValue(
+		`  ${PASSCODE.toUpperCase()} `,
+	);
+	await page.getByRole("button", { name: "Entrar" }).click();
+	await expect(page.getByRole("button", { name: /Hablar/ })).toBeVisible();
+	await page.reload();
+	await expect(page.getByRole("button", { name: /Hablar/ })).toBeVisible();
+});
+
+test("mock mode is labelled", async ({ page }) => {
+	await unlockAle(page);
+	await expect(page.getByText(/Modo de prueba/)).toBeVisible();
+});
+
+test("typed conversation gets a reply and a new word", async ({ page }) => {
+	await unlockAle(page);
+	await page.getByPlaceholder("…o escribe aquí").fill("I see a butterfly");
+	await page.getByRole("button", { name: "Enviar" }).click();
+	await expect(page.getByText("I see a butterfly").first()).toBeVisible();
+	await expect(page.getByText(/butterfly · mariposa/)).toBeVisible();
+	// The page is ready for the next turn.
+	await expect(page.getByText("Toca «Hablar» para empezar")).toBeVisible({
+		timeout: 15_000,
+	});
+	await page.getByPlaceholder("…o escribe aquí").fill("Thank you");
+	await page.getByRole("button", { name: "Enviar" }).click();
+	await expect(page.getByText("Thank you").first()).toBeVisible();
+});
+
+test("Ale learns her name, keeps it after reload, and can forget it", async ({
+	page,
+}) => {
+	await unlockAle(page);
+	await page.getByPlaceholder("…o escribe aquí").fill("My name is Ximena");
+	await page.getByRole("button", { name: "Enviar" }).click();
+	const chip = page.getByRole("button", { name: /Ximena ✕/ });
+	await expect(chip).toBeVisible();
+	await page.reload();
+	await expect(chip).toBeVisible();
+	await chip.click();
+	await expect(chip).toHaveCount(0);
+});
+
+test("changing topic starts a fresh conversation", async ({ page }) => {
+	await unlockAle(page);
+	await page.getByPlaceholder("…o escribe aquí").fill("hello");
+	await page.getByRole("button", { name: "Enviar" }).click();
+	await expect(page.getByText("hello").first()).toBeVisible();
+	await page.getByRole("button", { name: /Cocina/ }).click();
+	await expect(page.getByText("¿Cómo se dice mariposa?")).toBeVisible();
+});
+
+test("hands-free: Ale opens the conversation, then pause stops it", async ({
+	page,
+}) => {
+	await unlockAle(page);
+	await page.getByRole("button", { name: /Hablar/ }).click();
+	await expect(page.getByText(/I'm Ale|What's your name/)).toBeVisible({
+		timeout: 15_000,
+	});
+	await expect(page.getByRole("button", { name: /Pausar/ })).toBeVisible();
+	await page.getByRole("button", { name: /Pausar/ }).click();
+	await expect(page.getByRole("button", { name: /Hablar/ })).toBeVisible();
+});
+
+test("a rejected saved code locks the page and the field still works", async ({
+	page,
+}) => {
+	await page.addInitScript(() => {
+		if (!sessionStorage.getItem("seeded")) {
+			localStorage.setItem("iwm:bot-passcode", "old code");
+			sessionStorage.setItem("seeded", "1");
+		}
+	});
+	await open(page, "/ale");
+	await page.getByRole("button", { name: /Hablar/ }).click();
+	await expect(page.getByText("Código incorrecto.")).toBeVisible();
+	await page.locator("input[type=password]").pressSequentially(PASSCODE);
+	await page.getByRole("button", { name: "Entrar" }).click();
+	await expect(page.getByRole("button", { name: /Hablar/ })).toBeVisible();
+});
+
+test.describe("API guards", () => {
+	test.use({ permissions: [] });
+
+	test("status never leaks secrets", async ({ request }) => {
+		const body = await (await request.get("/api/bot/status")).text();
+		expect(body).not.toContain(PASSCODE);
+		expect(body).toContain('"mock":true');
+	});
+
+	test("endpoints need the passcode", async ({ request }) => {
+		for (const path of ["reply", "hear", "speak", "check"]) {
+			const res = await request.post(`/api/bot/${path}`, { data: {} });
+			expect(res.status(), path).toBe(401);
+		}
+	});
+
+	test("bad input is rejected", async ({ request }) => {
+		const headers = { "x-bot-passcode": encodeURIComponent(PASSCODE) };
+		const reply = await request.post("/api/bot/reply", {
+			headers,
+			data: { topic: "nope", history: [], latest: null },
+		});
+		expect(reply.status()).toBe(400);
+		const hear = await request.post("/api/bot/hear", {
+			headers,
+			data: { audio: "x".repeat(1_600_000), caption: "" },
+		});
+		expect(hear.status()).toBe(400);
+		const speak = await request.post("/api/bot/speak", {
+			headers,
+			data: { text: "x".repeat(2000) },
+		});
+		expect([400, 503]).toContain(speak.status());
+	});
+});
