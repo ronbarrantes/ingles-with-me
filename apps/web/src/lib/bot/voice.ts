@@ -3,8 +3,6 @@
 
 import { speak as phoneSpeak } from "#/lib/speech";
 import { fetchSpeech } from "./api";
-import { getLearner } from "./learner";
-import { sayable } from "./sayable";
 
 // A short silent WAV, played on the first tap so iPhones allow audio later.
 function silentWav() {
@@ -47,8 +45,7 @@ export class Voice {
 		void this.audio.play().catch(() => {});
 	}
 
-	async speak(line: string) {
-		const text = sayable(line, getLearner());
+	async speak(text: string) {
 		if (this.useServer) {
 			try {
 				return await this.playServer(text);

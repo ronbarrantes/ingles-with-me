@@ -24,7 +24,6 @@ const AttemptSchema = z.object({
 });
 const LearnerSchema = z.object({
 	name: z.string().max(60),
-	say: z.string().max(80),
 });
 const TutorReplySchema = z.object({
 	say: z.string().max(1200),
@@ -32,7 +31,7 @@ const TutorReplySchema = z.object({
 		.array(z.object({ word: z.string(), heard: z.string(), tip: z.string() }))
 		.max(5),
 	new_words: z.array(z.object({ en: z.string(), es: z.string() })).max(10),
-	learner_name: LearnerSchema.default({ name: "", say: "" }),
+	learner_name: LearnerSchema.default({ name: "" }),
 });
 const RequestSchema = z.object({
 	topic: z.enum(["libre", "cocina", "jardin", "casa"]),

@@ -49,7 +49,7 @@ export async function tutorReply(
 	return p.reply(model, topic, history, latest, learner);
 }
 
-const NO_NAME = { name: "", say: "" };
+const NO_NAME = { name: "" };
 
 function mockReply(
 	latest: Attempt | null,
@@ -62,7 +62,7 @@ function mockReply(
 				say: `Nice to meet you, ${told}! What are you cooking today?`,
 				corrections: [],
 				new_words: [],
-				learner_name: { name: told, say: told },
+				learner_name: { name: told },
 			},
 			inputTokens: 0,
 			outputTokens: 0,

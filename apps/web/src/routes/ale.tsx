@@ -142,7 +142,7 @@ function Bot() {
 				learnerRef.current,
 			);
 			if (stale()) return;
-			// She told Ale her name (or how to say it): remember it on this phone.
+			// She told Ale her name (or fixed its spelling): remember it on this phone.
 			if (res.reply.learner_name?.name) rememberName(res.reply.learner_name);
 			pushTurn({ role: "tutor", reply: res.reply });
 			setTiming((t) => ({ ...t, teacher: res.meta }));
