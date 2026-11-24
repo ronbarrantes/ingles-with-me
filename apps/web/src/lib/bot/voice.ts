@@ -1,11 +1,8 @@
-// Speaking Ale's replies: the server's voice (Google Text-to-Speech) when it's
+// Speaking Alex's replies: the server's voice (Google Text-to-Speech) when it's
 // configured, otherwise, or if it fails, the phone's built-in voice.
 
 import { speak as phoneSpeak } from "#/lib/speech";
 import { fetchSpeech } from "./api";
-
-// English voices read "Ale" like the beer ("ail"); spell it the Spanish way.
-const sayable = (text: string) => text.replace(/\bAle\b/g, "Ah-leh");
 
 // A short silent WAV, played on the first tap so iPhones allow audio later.
 function silentWav() {
@@ -48,8 +45,7 @@ export class Voice {
 		void this.audio.play().catch(() => {});
 	}
 
-	async speak(line: string) {
-		const text = sayable(line);
+	async speak(text: string) {
 		if (this.useServer) {
 			try {
 				return await this.playServer(text);
