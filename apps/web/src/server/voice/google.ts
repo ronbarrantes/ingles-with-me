@@ -1,4 +1,4 @@
-// Sam's voice with Google Cloud Text-to-Speech. The model part of VOICE is a
+// Alex's voice with Google Cloud Text-to-Speech. The model part of VOICE is a
 // Google voice name, e.g. en-US-Chirp3-HD-Aoede.
 
 import { googleToken } from "../google";

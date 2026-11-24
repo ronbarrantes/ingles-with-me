@@ -3,7 +3,7 @@ import { z } from "zod";
 import { checkPasscode } from "#/server/guard";
 import { voiceReady, voiceSpeak } from "#/server/voice";
 
-// Sam's line → MP3. The page falls back to the phone's voice if this fails.
+// Alex's line → MP3. The page falls back to the phone's voice if this fails.
 const Body = z.object({ text: z.string().min(1).max(1200) });
 
 export const Route = createFileRoute("/api/bot/speak")({

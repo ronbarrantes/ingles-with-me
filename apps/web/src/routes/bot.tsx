@@ -41,7 +41,7 @@ const FACE: Record<Mode, { emoji: string; label: string }> = {
 	listening: { emoji: "👂", label: "Te escucho…" },
 	hearing: { emoji: "🎧", label: "Revisando tu pronunciación…" },
 	thinking: { emoji: "🤔", label: "Pensando…" },
-	speaking: { emoji: "🗣️", label: "Sam está hablando" },
+	speaking: { emoji: "🗣️", label: "Alex está hablando" },
 };
 
 const scoreColor = (n: number) =>
@@ -107,8 +107,8 @@ function Bot() {
 
 	const addCost = (m: Meta) => setSpent((s) => s + (m.costUsd ?? 0));
 
-	// Ask Sam for the next line (latest = null opens the conversation), then say it.
-	async function askSam(latest: Attempt | null) {
+	// Ask Alex for the next line (latest = null opens the conversation), then say it.
+	async function askAlex(latest: Attempt | null) {
 		if (busy.current) return;
 		busy.current = true;
 		setError("");
@@ -137,7 +137,7 @@ function Bot() {
 		}
 	}
 
-	// One spoken turn: record until she stops, have the judge hear it, then ask Sam.
+	// One spoken turn: record until she stops, have the judge hear it, then ask Alex.
 	function listen() {
 		if (!mic.current || !handsFreeRef.current) return;
 		setMode("listening");
@@ -166,7 +166,7 @@ function Bot() {
 					if (handsFreeRef.current) listen();
 					return;
 				}
-				void askSam(attempt);
+				void askAlex(attempt);
 			},
 		});
 	}
@@ -205,7 +205,7 @@ function Bot() {
 		} catch {
 			// The screen may dim; the conversation still works.
 		}
-		if (turnsRef.current.length === 0) await askSam(null);
+		if (turnsRef.current.length === 0) await askAlex(null);
 		else listen();
 	};
 
@@ -229,7 +229,7 @@ function Bot() {
 		setTyped("");
 		mic.current?.pause();
 		captions.current?.stop();
-		void askSam({ text });
+		void askAlex({ text });
 	};
 
 	const changeTopic = (t: Topic) => {
@@ -276,7 +276,7 @@ function Bot() {
 				>
 					←
 				</Link>
-				<span className="font-bold">Habla con Sam</span>
+				<span className="font-bold">Habla con Alex</span>
 				<span className="w-10 text-right text-xs text-muted tabular-nums">
 					${spent.toFixed(3)}
 				</span>
@@ -324,7 +324,7 @@ function Bot() {
 					{face.emoji}
 				</span>
 				<div className="min-w-0">
-					<p className="text-xl font-extrabold">Sam</p>
+					<p className="text-xl font-extrabold">Alex</p>
 					<p className="truncate text-sm text-muted" aria-live="polite">
 						{face.label}
 					</p>
@@ -494,7 +494,7 @@ function PasscodeScreen({
 				onDone();
 			}}
 		>
-			<h1 className="text-4xl font-extrabold">Habla con Sam</h1>
+			<h1 className="text-4xl font-extrabold">Habla con Alex</h1>
 			<p className="text-muted">Escribe el código de acceso.</p>
 			<input
 				type="password"

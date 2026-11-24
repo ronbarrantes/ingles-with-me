@@ -1,4 +1,4 @@
-// Speaking Sam's replies: the server's voice (Google Text-to-Speech) when it's
+// Speaking Alex's replies: the server's voice (Google Text-to-Speech) when it's
 // configured, otherwise, or if it fails, the phone's built-in voice.
 
 import { speak as phoneSpeak } from "#/lib/speech";
