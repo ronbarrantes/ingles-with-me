@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type {
 	Attempt,
-	LearnerName,
+	TeacherContext,
 	Topic,
 	Turn,
 	TutorReply,
@@ -27,7 +27,7 @@ export async function reply(
 	topic: Topic,
 	history: Turn[],
 	latest: Attempt | null,
-	learner: LearnerName | null,
+	ctx: TeacherContext,
 ): Promise<{
 	reply: TutorReply;
 	inputTokens: number;
@@ -50,7 +50,7 @@ export async function reply(
 				text: SYSTEM_PROMPT,
 				cache_control: { type: "ephemeral" },
 			},
-			{ type: "text", text: sessionNote(topic, learner) },
+			{ type: "text", text: sessionNote(topic, ctx) },
 		],
 		messages: toChat(history, latest),
 	});

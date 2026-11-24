@@ -38,7 +38,7 @@ function mockHear(caption: string): {
 			word,
 			accuracy: low ? 55 : 92,
 			error: low ? "Mispronunciation" : "None",
-			note: low ? "th sounded like t" : "",
+			note: low ? "la th sonó como t" : "",
 		};
 	});
 	return {

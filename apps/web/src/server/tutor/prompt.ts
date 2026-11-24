@@ -3,7 +3,7 @@
 
 import { SAY } from "#/data/say";
 import { CORE_WORDS } from "#/data/words";
-import type { Attempt, LearnerName, Topic, Turn } from "#/lib/bot/types";
+import type { Attempt, TeacherContext, Topic, Turn } from "#/lib/bot/types";
 
 const TOPICS: Record<Topic, string> = {
 	libre:
@@ -36,6 +36,12 @@ Her name
 - Once you know it, use it now and then, not every turn.
 - When she tells you her name, or corrects its spelling, fill learner_name.name with it spelled her way. Otherwise leave it "".
 
+Hard words
+The session note may list words she has struggled to pronounce, from earlier turns or days, with her misses, last and best scores, and what sounded off. Use them like a good teacher:
+- Bring one back now and then, when it fits the conversation, not every turn. Celebrate when a hard word reaches 75 or more.
+- If a word keeps failing, build up to it: first practice one to three easier words that share the tricky sound (three: "tea", "tree", then "three"; very: "van", "vet", then "very"), and once she gets those, go back to the hard word.
+- If she asks what is hard for her or wants to review ("¿qué palabras me cuestan?"), name two or three and practice one.
+
 Pronunciation scores
 Her spoken turns can include scores from a pronunciation judge: 0 to 100 per word, plus overall accuracy and fluency. 75 or more is good, 60 to 74 is understandable but off, under 60 needs work. Word errors can be Mispronunciation, Omission or Insertion, sometimes with a short note on what sounded off. Spanish or mixed speech usually has no scores.
 - Fix at most one or two things per turn: the ones that matter most, usually the lowest-scoring important word.
@@ -61,13 +67,24 @@ Her known words (with how they sound to a Spanish reader)
 ${KNOWN}`;
 
 /** Per-request context: the topic and what you already know about her. */
-export const sessionNote = (topic: Topic, learner: LearnerName | null) =>
-	[
+export function sessionNote(topic: Topic, { learner, hard }: TeacherContext) {
+	const lines = [
 		`Current topic: ${TOPICS[topic]}`,
 		learner?.name
 			? `Her name is ${learner.name}. You already know it from an earlier conversation: don't ask again.`
 			: "You don't know her name yet.",
-	].join("\n");
+	];
+	if (hard.length) {
+		const list = hard
+			.map(
+				(h) =>
+					`${h.word} (missed ${h.misses}x, last ${h.last}, best ${h.best}${h.note ? `, ${h.note}` : ""})`,
+			)
+			.join("; ");
+		lines.push(`Hard words: ${list}.`);
+	}
+	return lines.join("\n");
+}
 
 /** Her turn as the tutor sees it: what she said plus the engine's scores. */
 export function describeAttempt(a: Attempt): string {

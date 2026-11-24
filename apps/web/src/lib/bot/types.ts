@@ -9,7 +9,7 @@ export interface WordScore {
 	accuracy: number;
 	/** e.g. "None", "Mispronunciation", "Omission", "Insertion". */
 	error: string;
-	/** What sounded off, e.g. "th sounded like t". */
+	/** What sounded off, e.g. "la th sonó como t". */
 	note?: string;
 }
 
@@ -20,6 +20,26 @@ export interface Attempt {
 	words?: WordScore[];
 	accuracy?: number;
 	fluency?: number;
+}
+
+/** What the teacher knows about her beyond this chat. */
+export interface TeacherContext {
+	learner: LearnerName | null;
+	hard: HardWord[];
+}
+
+/** A word she has trouble pronouncing, remembered across conversations. */
+export interface HardWord {
+	word: string;
+	/** Times it scored under 75. */
+	misses: number;
+	last: number;
+	best: number;
+	/** Good tries in a row since the last miss. */
+	streak: number;
+	/** What sounded off last time, e.g. "la th sonó como t". */
+	note: string;
+	at: number;
 }
 
 export interface Correction {
@@ -58,6 +78,8 @@ export interface ReplyRequest {
 	latest: Attempt | null;
 	/** Her name if the teacher already learned it, so it remembers across sessions. */
 	learner: LearnerName | null;
+	/** Words she struggles with, hardest first (a few). */
+	hard: HardWord[];
 }
 
 export interface Meta {

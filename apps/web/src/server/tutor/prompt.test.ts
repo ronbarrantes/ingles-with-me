@@ -15,10 +15,38 @@ describe("teacher prompt", () => {
 	});
 
 	it("tells the teacher whether it knows her name", () => {
-		expect(sessionNote("cocina", null)).toContain("don't know her name");
-		const note = sessionNote("cocina", { name: "Ximena" });
+		expect(sessionNote("cocina", { learner: null, hard: [] })).toContain(
+			"don't know her name",
+		);
+		const note = sessionNote("cocina", {
+			learner: { name: "Ximena" },
+			hard: [],
+		});
 		expect(note).toContain("Her name is Ximena");
 		expect(note).toContain("cooking");
+	});
+
+	it("lists hard words with scores and notes", () => {
+		const note = sessionNote("libre", {
+			learner: null,
+			hard: [
+				{
+					word: "three",
+					misses: 3,
+					last: 52,
+					best: 61,
+					streak: 0,
+					note: "la th sonó como t",
+					at: 1,
+				},
+			],
+		});
+		expect(note).toContain(
+			"Hard words: three (missed 3x, last 52, best 61, la th sonó como t).",
+		);
+		expect(sessionNote("libre", { learner: null, hard: [] })).not.toContain(
+			"Hard words",
+		);
 	});
 
 	it("describes a scored attempt with word scores and notes", () => {
@@ -30,7 +58,7 @@ describe("teacher prompt", () => {
 					word: "three",
 					accuracy: 42.4,
 					error: "Mispronunciation",
-					note: "th sounded like t",
+					note: "la th sonó como t",
 				},
 				{ word: "trees", accuracy: 91, error: "None" },
 			],
@@ -38,7 +66,7 @@ describe("teacher prompt", () => {
 			fluency: 80,
 		});
 		expect(text).toContain('She said: "three trees"');
-		expect(text).toContain("three 42 Mispronunciation (th sounded like t)");
+		expect(text).toContain("three 42 Mispronunciation (la th sonó como t)");
 		expect(text).toContain("trees 91");
 		expect(text).not.toContain("trees 91 None");
 		expect(text).toContain("Overall accuracy 67");
