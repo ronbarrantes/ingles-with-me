@@ -13,6 +13,14 @@ import {
 import { Captions, captionsAvailable } from "#/lib/bot/captions";
 import { getLearner, setLearner } from "#/lib/bot/learner";
 import { Mic } from "#/lib/bot/mic";
+import {
+	chip,
+	focusWords,
+	getInterests,
+	type Interests,
+	notePicked,
+	suggestTopics,
+} from "#/lib/bot/topics";
 import { getHardWords, recordScores, setHardWords } from "#/lib/bot/trouble";
 import type {
 	Attempt,
@@ -25,19 +33,13 @@ import type {
 	TutorReply,
 } from "#/lib/bot/types";
 import { Voice } from "#/lib/bot/voice";
+import { useStore } from "#/lib/store";
 
 // Hidden for now: not linked anywhere, not indexed.
 export const Route = createFileRoute("/ale")({
 	head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
 	component: Bot,
 });
-
-const TOPICS: { id: Topic; label: string; emoji: string; color: string }[] = [
-	{ id: "libre", label: "Libre", emoji: "💬", color: "#2B59C3" },
-	{ id: "cocina", label: "Cocina", emoji: "🍳", color: "#F3A712" },
-	{ id: "jardin", label: "Jardín", emoji: "🌻", color: "#3BB273" },
-	{ id: "casa", label: "Casa", emoji: "🏠", color: "#E4572E" },
-];
 
 type Mode = "idle" | "listening" | "hearing" | "thinking" | "speaking";
 
@@ -67,6 +69,10 @@ function Bot() {
 	const [spent, setSpent] = useState(0);
 	const [learner, setLearnerState] = useState<LearnerName | null>(null);
 	const [hard, setHard] = useState<HardWord[]>([]);
+	const [interests, setInterests] = useState<Interests>({ counts: {} });
+	const words = useStore();
+	const wordsRef = useRef(words);
+	wordsRef.current = words;
 	const [panel, setPanel] = useState<"none" | "menu" | "hard">("none");
 
 	// Refs so async callbacks always see the latest values.
@@ -85,7 +91,8 @@ function Bot() {
 	const wakeLock = useRef<{ release: () => Promise<void> } | null>(null);
 	const end = useRef<HTMLDivElement>(null);
 
-	const color = TOPICS.find((t) => t.id === topic)?.color ?? "#2B59C3";
+	const current = chip(topic, hard.length);
+	const color = current.color;
 
 	const rememberName = (l: LearnerName | null) => {
 		learnerRef.current = l?.name ? l : null;
@@ -112,6 +119,7 @@ function Bot() {
 		setLearnerState(learnerRef.current);
 		hardRef.current = getHardWords();
 		setHard(hardRef.current);
+		setInterests(getInterests());
 		fetchStatus()
 			.then((s) => {
 				setStatus(s);
@@ -162,6 +170,9 @@ function Bot() {
 				latest,
 				learnerRef.current,
 				hardRef.current.slice(0, 8),
+				topicRef.current === "libre" || topicRef.current === "hard"
+					? []
+					: focusWords(wordsRef.current, topicRef.current),
 			);
 			if (stale()) return;
 			// She told Ale her name (or fixed its spelling): remember it on this phone.
@@ -305,12 +316,16 @@ function Bot() {
 		turnsRef.current = [];
 		setTurns([]);
 		setTiming({});
+		topicRef.current = "libre";
+		setTopic("libre");
 	};
 
-	const changeTopic = (t: Topic) => {
-		newChat();
+	// A suggestion was tapped: remember the interest and start talking about it.
+	const pickTopic = (t: Topic) => {
+		setInterests((i) => notePicked(i, t));
 		topicRef.current = t;
 		setTopic(t);
+		void start();
 	};
 
 	useEffect(
@@ -361,32 +376,6 @@ function Bot() {
 				</p>
 			)}
 
-			<div className="mt-3 flex gap-2 overflow-x-auto px-5 [scrollbar-width:none]">
-				{TOPICS.map((t) => {
-					const on = t.id === topic;
-					return (
-						<button
-							key={t.id}
-							type="button"
-							aria-pressed={on}
-							onClick={() => changeTopic(t.id)}
-							className="h-9 shrink-0 border-2 px-3 text-sm font-bold"
-							style={
-								on
-									? {
-											background: t.color,
-											borderColor: t.color,
-											color: onColor(t.color),
-										}
-									: { borderColor: "var(--ink)" }
-							}
-						>
-							{t.emoji} {t.label}
-						</button>
-					);
-				})}
-			</div>
-
 			<div className="mt-4 flex items-center gap-4 px-5">
 				<span
 					className={`grid h-16 w-16 shrink-0 place-items-center border-2 border-ink text-3xl ${mode === "listening" ? "animate-pulse" : ""}`}
@@ -396,7 +385,14 @@ function Bot() {
 					{face.emoji}
 				</span>
 				<div className="min-w-0">
-					<p className="text-xl font-extrabold">Ale</p>
+					<p className="text-xl font-extrabold">
+						Ale
+						{turns.length > 0 && topic !== "libre" && (
+							<span className="ml-2 text-sm font-bold text-muted">
+								· {current.emoji} {current.label}
+							</span>
+						)}
+					</p>
 					<p className="truncate text-sm text-muted" aria-live="polite">
 						{face.label}
 					</p>
@@ -406,11 +402,26 @@ function Bot() {
 			<div className="relative mt-4 flex min-h-0 flex-1 flex-col border-t-2 border-line">
 				<div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 pt-4 pb-20">
 					{turns.length === 0 && (
-						<p className="pt-6 text-center text-muted">
-							Habla en inglés o pregunta en español:
-							<br />
-							<i>«¿Cómo se dice mariposa?»</i>
-						</p>
+						<div className="pt-2">
+							<p className="text-2xl font-extrabold">¿De qué hablamos?</p>
+							<div className="mt-3 flex flex-wrap gap-2">
+								{suggestTopics(words, interests, hard.length).map((c) => (
+									<button
+										key={c.id}
+										type="button"
+										onClick={() => pickTopic(c.id)}
+										className="h-11 border-2 px-3 font-bold"
+										style={{ borderColor: c.color }}
+									>
+										{c.emoji} {c.label}
+									</button>
+								))}
+							</div>
+							<p className="mt-4 text-sm text-muted">
+								O toca «Hablar» y di lo que quieras. Puedes preguntar en
+								español: <i>«¿Cómo se dice mariposa?»</i>
+							</p>
+						</div>
 					)}
 					{turns.map((t, i) =>
 						t.role === "learner" ? (

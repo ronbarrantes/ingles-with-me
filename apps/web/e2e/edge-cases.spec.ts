@@ -39,7 +39,7 @@ test("two quick typed messages are both kept", async ({ page }) => {
 	await expect(page.getByText("second message").first()).toBeVisible();
 });
 
-test("a late reply doesn't land in a new topic", async ({ page }) => {
+test("a late reply doesn't land in a new chat", async ({ page }) => {
 	await unlockAle(page);
 	await page.route("**/api/bot/reply", async (route) => {
 		await new Promise((r) => setTimeout(r, 1000));
@@ -47,9 +47,11 @@ test("a late reply doesn't land in a new topic", async ({ page }) => {
 	});
 	await page.getByPlaceholder("…o escribe aquí").fill("hello there");
 	await page.getByRole("button", { name: "Enviar" }).click();
-	await page.getByRole("button", { name: /Cocina/ }).click();
+	await page.getByRole("button", { name: "Más opciones" }).click();
+	await page.getByRole("menuitem", { name: /Nueva conversación/ }).click();
 	await page.waitForTimeout(2000);
-	await expect(page.getByText("¿Cómo se dice mariposa?")).toBeVisible();
+	await expect(page.getByText("¿De qué hablamos?")).toBeVisible();
+	await expect(page.getByText("hello there")).toHaveCount(0);
 	// And the new chat works right away.
 	await page.getByPlaceholder("…o escribe aquí").fill("new topic");
 	await page.getByRole("button", { name: "Enviar" }).click();

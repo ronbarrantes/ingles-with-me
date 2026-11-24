@@ -14,21 +14,24 @@ describe("teacher prompt", () => {
 		expect(SYSTEM_PROMPT).toContain("dog (");
 	});
 
-	it("tells the teacher whether it knows her name", () => {
-		expect(sessionNote("cocina", { learner: null, hard: [] })).toContain(
-			"don't know her name",
-		);
-		const note = sessionNote("cocina", {
+	it("tells the teacher whether it knows their name", () => {
+		expect(
+			sessionNote("comida", { learner: null, hard: [], focus: [] }),
+		).toContain("don't know their name");
+		const note = sessionNote("comida", {
 			learner: { name: "Ximena" },
 			hard: [],
+			focus: ["bread", "rice"],
 		});
-		expect(note).toContain("Her name is Ximena");
-		expect(note).toContain("cooking");
+		expect(note).toContain("Their name is Ximena");
+		expect(note).toContain("Topic: Comida (food, cooking and meals)");
+		expect(note).toContain("bread, rice");
 	});
 
 	it("lists hard words with scores and notes", () => {
 		const note = sessionNote("libre", {
 			learner: null,
+			focus: [],
 			hard: [
 				{
 					word: "three",
@@ -44,9 +47,9 @@ describe("teacher prompt", () => {
 		expect(note).toContain(
 			"Hard words: three (missed 3x, last 52, best 61, la th sonó como t).",
 		);
-		expect(sessionNote("libre", { learner: null, hard: [] })).not.toContain(
-			"Hard words",
-		);
+		expect(
+			sessionNote("libre", { learner: null, hard: [], focus: [] }),
+		).not.toContain("Hard words");
 	});
 
 	it("describes a scored attempt with word scores and notes", () => {

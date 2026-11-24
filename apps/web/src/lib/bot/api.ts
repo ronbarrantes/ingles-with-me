@@ -78,9 +78,17 @@ export const fetchReply = async (
 	latest: Attempt | null,
 	learner: LearnerName | null,
 	hard: HardWord[],
+	focus: string[],
 ): Promise<ReplyResponse> =>
 	(
-		await post("/api/bot/reply", { topic, history, latest, learner, hard })
+		await post("/api/bot/reply", {
+			topic,
+			history,
+			latest,
+			learner,
+			hard,
+			focus,
+		})
 	).json();
 
 export const fetchSpeech = async (text: string): Promise<Blob> =>

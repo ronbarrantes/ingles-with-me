@@ -76,13 +76,34 @@ test("Ale learns her name, keeps it after reload, and can forget it", async ({
 	await expect(forget).toHaveCount(0);
 });
 
-test("changing topic starts a fresh conversation", async ({ page }) => {
+test("topic suggestions: pick one, Ale gets its words, chips go away", async ({
+	page,
+}) => {
 	await unlockAle(page);
-	await page.getByPlaceholder("…o escribe aquí").fill("hello");
-	await page.getByRole("button", { name: "Enviar" }).click();
-	await expect(page.getByText("hello").first()).toBeVisible();
-	await page.getByRole("button", { name: /Cocina/ }).click();
-	await expect(page.getByText("¿Cómo se dice mariposa?")).toBeVisible();
+	await expect(page.getByText("¿De qué hablamos?")).toBeVisible();
+	await expect(
+		page.getByRole("button", { name: /De lo que quieras/ }),
+	).toBeVisible();
+	// No sideways-scrolling topic row anymore.
+	await expect(page.getByRole("button", { name: /Cocina|Jardín/ })).toHaveCount(
+		0,
+	);
+	const sent = page.waitForRequest("**/api/bot/reply");
+	const first = page
+		.getByText("¿De qué hablamos?")
+		.locator("..")
+		.getByRole("button")
+		.first();
+	await first.click();
+	const body = (await sent).postDataJSON();
+	expect(body.topic).not.toBe("libre");
+	expect(body.focus.length).toBeGreaterThan(0);
+	await expect(page.getByText("¿De qué hablamos?")).toHaveCount(0);
+	await page.getByRole("button", { name: /Pausar/ }).click();
+	// The picked topic is remembered and comes first next time.
+	await page.getByRole("button", { name: "Más opciones" }).click();
+	await page.getByRole("menuitem", { name: /Nueva conversación/ }).click();
+	await expect(page.getByText("¿De qué hablamos?")).toBeVisible();
 });
 
 test("hands-free: Ale opens the conversation, then pause stops it", async ({
@@ -203,5 +224,5 @@ test("menu: new conversation clears the chat", async ({ page }) => {
 	await expect(page.getByText("hello").first()).toBeVisible();
 	await page.getByRole("button", { name: "Más opciones" }).click();
 	await page.getByRole("menuitem", { name: /Nueva conversación/ }).click();
-	await expect(page.getByText("¿Cómo se dice mariposa?")).toBeVisible();
+	await expect(page.getByText("¿De qué hablamos?")).toBeVisible();
 });
