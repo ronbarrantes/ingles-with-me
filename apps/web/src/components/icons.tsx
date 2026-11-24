@@ -84,3 +84,10 @@ export const BackIcon = ({ filled: _, ...p }: P) => (
 		<path d="m15 5-7 7 7 7" />
 	</svg>
 );
+
+export const ChatIcon = ({ filled: _, ...p }: P) => (
+	<svg aria-hidden="true" {...base(p)}>
+		<path d="M4 5h16v11H10l-4 3.5V16H4z" />
+		<path d="M8 9.5h8M8 12.5h5" />
+	</svg>
+);
