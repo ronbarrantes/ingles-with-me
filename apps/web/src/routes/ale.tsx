@@ -110,6 +110,8 @@ function Bot() {
 
 	const handleError = (e: unknown) => {
 		if (e instanceof BotError && e.code === "wrong_passcode") {
+			// Stop the hands-free loop, or it keeps retrying behind the lock screen.
+			pause();
 			setPasscode("");
 			setLocked(true);
 			setError("Código incorrecto.");
