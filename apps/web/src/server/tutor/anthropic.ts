@@ -13,7 +13,7 @@ import type {
 import { SYSTEM_PROMPT, sessionNote, toChat } from "./prompt";
 import { ReplySchema } from "./schema";
 
-// USD per million tokens (input, output), for the cost readout on /bot.
+// USD per million tokens (input, output), for the cost readout on /ale.
 const PRICES: Record<string, [number, number]> = {
 	"claude-haiku-5-5": [0.1, 0.5],
 	"claude-sonnet-5-5": [2, 10],

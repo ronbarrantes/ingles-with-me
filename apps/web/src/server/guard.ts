@@ -1,4 +1,4 @@
-// /bot spends real money, so its endpoints need the passcode (BOT_PASSCODE).
+// /ale spends real money, so its endpoints need the passcode (BOT_PASSCODE).
 
 import { timingSafeEqual } from "node:crypto";
 

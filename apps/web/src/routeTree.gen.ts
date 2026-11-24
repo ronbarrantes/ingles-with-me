@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AleRouteImport } from './routes/ale'
 import { Route as BotRouteImport } from './routes/bot'
 import { Route as PalabrasRouteImport } from './routes/palabras'
 import { Route as RepasarRouteImport } from './routes/repasar'
@@ -24,6 +25,11 @@ import { Route as ApiBotStatusRouteImport } from './routes/api/bot/status'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AleRoute = AleRouteImport.update({
+  id: '/ale',
+  path: '/ale',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BotRoute = BotRouteImport.update({
@@ -79,6 +85,7 @@ const ApiBotStatusRoute = ApiBotStatusRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ale': typeof AleRoute
   '/bot': typeof BotRoute
   '/palabras': typeof PalabrasRoute
   '/repasar': typeof RepasarRouteWithChildren
@@ -92,6 +99,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ale': typeof AleRoute
   '/bot': typeof BotRoute
   '/palabras': typeof PalabrasRoute
   '/aprender/$group': typeof AprenderGroupRoute
@@ -105,6 +113,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ale': typeof AleRoute
   '/bot': typeof BotRoute
   '/palabras': typeof PalabrasRoute
   '/repasar': typeof RepasarRouteWithChildren
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ale'
     | '/bot'
     | '/palabras'
     | '/repasar'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ale'
     | '/bot'
     | '/palabras'
     | '/aprender/$group'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/ale'
     | '/bot'
     | '/palabras'
     | '/repasar'
@@ -159,6 +171,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AleRoute: typeof AleRoute
   BotRoute: typeof BotRoute
   PalabrasRoute: typeof PalabrasRoute
   RepasarRoute: typeof RepasarRouteWithChildren
@@ -176,6 +189,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ale': {
+      id: '/ale'
+      path: '/ale'
+      fullPath: '/ale'
+      preLoaderRoute: typeof AleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bot': {
@@ -266,6 +286,7 @@ const RepasarRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AleRoute: AleRoute,
   BotRoute: BotRoute,
   PalabrasRoute: PalabrasRoute,
   RepasarRoute: RepasarRouteWithChildren,

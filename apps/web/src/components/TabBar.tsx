@@ -27,7 +27,7 @@ const tabs = [
 export const isDeckPath = (p: string) =>
 	p.startsWith("/aprender/") ||
 	/^\/repasar\/[^/]+/.test(p) ||
-	p.startsWith("/bot");
+	p.startsWith("/ale");
 
 export function TabBar() {
 	const path = useRouterState({ select: (s) => s.location.pathname });

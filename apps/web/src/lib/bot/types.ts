@@ -1,4 +1,4 @@
-// Shapes shared by the /bot page and its server endpoints.
+// Shapes shared by the /ale page and its server endpoints.
 
 export type Topic = "libre" | "cocina" | "jardin" | "casa";
 
