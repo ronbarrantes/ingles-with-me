@@ -46,6 +46,10 @@ test("typed conversation gets a reply and a new word", async ({ page }) => {
 	await page.getByRole("button", { name: "Enviar" }).click();
 	await expect(page.getByText("I see a butterfly").first()).toBeVisible();
 	await expect(page.getByText(/butterfly · mariposa/)).toBeVisible();
+	// What she should say is shown in bold, without the quotes.
+	await expect(
+		page.locator("strong", { hasText: /^butterfly$/ }),
+	).toBeVisible();
 	// The page is ready for the next turn.
 	await expect(page.getByText("Toca «Hablar» para empezar")).toBeVisible({
 		timeout: 15_000,

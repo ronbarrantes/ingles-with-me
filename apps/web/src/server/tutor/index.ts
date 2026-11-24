@@ -81,7 +81,7 @@ function mockReply(
 			}
 		: weak
 			? {
-					say: `Good try! Let's practice "${weak.word}". Say it with me: ${weak.word}.`,
+					say: `Good try! Let's practice "${weak.word}". Say it with me: "${weak.word}".`,
 					corrections: [
 						{
 							word: weak.word,
@@ -93,7 +93,7 @@ function mockReply(
 					learner_name: NO_NAME,
 				}
 			: {
-					say: `Nice! You said: ${latest.text}. A butterfly is a mariposa. Can you say butterfly?`,
+					say: `Nice! You said: ${latest.text}. A butterfly is a mariposa. Can you say "butterfly"?`,
 					corrections: [],
 					new_words: [{ en: "butterfly", es: "mariposa" }],
 					learner_name: NO_NAME,
