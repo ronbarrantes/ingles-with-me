@@ -10,10 +10,12 @@ import {
 	setPasscode,
 } from "#/lib/bot/api";
 import { Captions, captionsAvailable } from "#/lib/bot/captions";
+import { getLearner, setLearner } from "#/lib/bot/learner";
 import { Mic } from "#/lib/bot/mic";
 import type {
 	Attempt,
 	BotStatus,
+	LearnerName,
 	Meta,
 	Topic,
 	Turn,
@@ -60,9 +62,11 @@ function Bot() {
 	const [note, setNote] = useState("");
 	const [timing, setTiming] = useState<{ judge?: Meta; teacher?: Meta }>({});
 	const [spent, setSpent] = useState(0);
+	const [learner, setLearnerState] = useState<LearnerName | null>(null);
 
 	// Refs so async callbacks always see the latest values.
 	const turnsRef = useRef<Turn[]>([]);
+	const learnerRef = useRef<LearnerName | null>(null);
 	const handsFreeRef = useRef(false);
 	const topicRef = useRef<Topic>("libre");
 	const statusRef = useRef<BotStatus | null>(null);
@@ -75,7 +79,15 @@ function Bot() {
 
 	const color = TOPICS.find((t) => t.id === topic)?.color ?? "#2B59C3";
 
+	const rememberName = (l: LearnerName | null) => {
+		learnerRef.current = l?.name ? l : null;
+		setLearnerState(learnerRef.current);
+		setLearner(learnerRef.current);
+	};
+
 	useEffect(() => {
+		learnerRef.current = getLearner();
+		setLearnerState(learnerRef.current);
 		fetchStatus()
 			.then((s) => {
 				setStatus(s);
@@ -116,7 +128,14 @@ function Bot() {
 			const history = turnsRef.current;
 			if (latest) pushTurn({ role: "learner", attempt: latest });
 			setMode("thinking");
-			const res = await fetchReply(topicRef.current, history, latest);
+			const res = await fetchReply(
+				topicRef.current,
+				history,
+				latest,
+				learnerRef.current,
+			);
+			// She told Ale her name (or how to say it): remember it on this phone.
+			if (res.reply.learner_name?.name) rememberName(res.reply.learner_name);
 			pushTurn({ role: "tutor", reply: res.reply });
 			setTiming((t) => ({ ...t, teacher: res.meta }));
 			addCost(res.meta);
@@ -329,6 +348,16 @@ function Bot() {
 						{face.label}
 					</p>
 				</div>
+				{learner && (
+					<button
+						type="button"
+						onClick={() => rememberName(null)}
+						className="ml-auto shrink-0 border-2 border-ink px-2 py-1 text-xs font-bold"
+						title="Ale olvidará tu nombre y te lo preguntará otra vez"
+					>
+						{learner.name} ✕
+					</button>
+				)}
 			</div>
 
 			<div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto border-t-2 border-line px-5 py-4">
