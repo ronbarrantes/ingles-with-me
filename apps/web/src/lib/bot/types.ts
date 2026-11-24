@@ -33,10 +33,19 @@ export interface NewWord {
 	es: string;
 }
 
+/** Her name, and how an English voice should spell it to say it right. */
+export interface LearnerName {
+	name: string;
+	/** Respelling for an English voice, e.g. "Hee-MEH-nah" for Ximena. */
+	say: string;
+}
+
 export interface TutorReply {
 	say: string;
 	corrections: Correction[];
 	new_words: NewWord[];
+	/** Set when she tells the teacher her name (or corrects how it's said); name "" otherwise. */
+	learner_name: LearnerName;
 }
 
 export type Turn =
@@ -49,6 +58,8 @@ export interface ReplyRequest {
 	history: Turn[];
 	/** Her latest turn; null to have the tutor open the conversation. */
 	latest: Attempt | null;
+	/** Her name if the teacher already learned it, so it remembers across sessions. */
+	learner: LearnerName | null;
 }
 
 export interface Meta {

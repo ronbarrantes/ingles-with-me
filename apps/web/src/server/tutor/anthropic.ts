@@ -3,17 +3,15 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { z } from "zod";
-import type { Attempt, Topic, Turn, TutorReply } from "#/lib/bot/types";
-import { SYSTEM_PROMPT, toChat, topicNote } from "./prompt";
-
-const ReplySchema = z.object({
-	say: z.string(),
-	corrections: z.array(
-		z.object({ word: z.string(), heard: z.string(), tip: z.string() }),
-	),
-	new_words: z.array(z.object({ en: z.string(), es: z.string() })),
-});
+import type {
+	Attempt,
+	LearnerName,
+	Topic,
+	Turn,
+	TutorReply,
+} from "#/lib/bot/types";
+import { SYSTEM_PROMPT, sessionNote, toChat } from "./prompt";
+import { ReplySchema } from "./schema";
 
 // USD per million tokens (input, output), for the cost readout on /bot.
 const PRICES: Record<string, [number, number]> = {
@@ -29,6 +27,7 @@ export async function reply(
 	topic: Topic,
 	history: Turn[],
 	latest: Attempt | null,
+	learner: LearnerName | null,
 ): Promise<{
 	reply: TutorReply;
 	inputTokens: number;
@@ -51,7 +50,7 @@ export async function reply(
 				text: SYSTEM_PROMPT,
 				cache_control: { type: "ephemeral" },
 			},
-			{ type: "text", text: topicNote(topic) },
+			{ type: "text", text: sessionNote(topic, learner) },
 		],
 		messages: toChat(history, latest),
 	});

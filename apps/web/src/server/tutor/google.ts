@@ -1,24 +1,23 @@
 // The teacher on Gemini (Vertex AI): same instructions and reply shape as
 // the Claude teacher, so the two can be compared by changing TEACHER.
 
-import { z } from "zod";
-import type { Attempt, Topic, Turn, TutorReply } from "#/lib/bot/types";
+import type {
+	Attempt,
+	LearnerName,
+	Topic,
+	Turn,
+	TutorReply,
+} from "#/lib/bot/types";
 import { gemini, geminiSchema } from "../google";
-import { SYSTEM_PROMPT, toChat, topicNote } from "./prompt";
-
-const ReplySchema = z.object({
-	say: z.string(),
-	corrections: z.array(
-		z.object({ word: z.string(), heard: z.string(), tip: z.string() }),
-	),
-	new_words: z.array(z.object({ en: z.string(), es: z.string() })),
-});
+import { SYSTEM_PROMPT, sessionNote, toChat } from "./prompt";
+import { ReplySchema } from "./schema";
 
 export async function reply(
 	model: string,
 	topic: Topic,
 	history: Turn[],
 	latest: Attempt | null,
+	learner: LearnerName | null,
 ) {
 	const res = await gemini().models.generateContent({
 		model,
@@ -27,7 +26,7 @@ export async function reply(
 			parts: [{ text: m.content }],
 		})),
 		config: {
-			systemInstruction: `${SYSTEM_PROMPT}\n\n${topicNote(topic)}`,
+			systemInstruction: `${SYSTEM_PROMPT}\n\n${sessionNote(topic, learner)}`,
 			responseMimeType: "application/json",
 			responseJsonSchema: geminiSchema(ReplySchema),
 			maxOutputTokens: 1500,

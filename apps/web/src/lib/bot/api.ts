@@ -4,6 +4,7 @@ import type {
 	Attempt,
 	BotStatus,
 	HearResponse,
+	LearnerName,
 	ReplyResponse,
 	Topic,
 	Turn,
@@ -69,8 +70,9 @@ export const fetchReply = async (
 	topic: Topic,
 	history: Turn[],
 	latest: Attempt | null,
+	learner: LearnerName | null,
 ): Promise<ReplyResponse> =>
-	(await post("/api/bot/reply", { topic, history, latest })).json();
+	(await post("/api/bot/reply", { topic, history, latest, learner })).json();
 
 export const fetchSpeech = async (text: string): Promise<Blob> =>
 	(await post("/api/bot/speak", { text })).blob();

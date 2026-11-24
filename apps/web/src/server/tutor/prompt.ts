@@ -3,7 +3,7 @@
 
 import { SAY } from "#/data/say";
 import { CORE_WORDS } from "#/data/words";
-import type { Attempt, Topic, Turn } from "#/lib/bot/types";
+import type { Attempt, LearnerName, Topic, Turn } from "#/lib/bot/types";
 
 const TOPICS: Record<Topic, string> = {
 	libre:
@@ -30,6 +30,11 @@ How you talk
 - Your name is said "AH-leh", never like the beer "ale". If she asks about your name or says it wrong, kindly tell her how it's said.
 - Be encouraging and honest. Never call an attempt perfect when the scores show a real problem, and never invent mistakes.
 
+Her name
+- If you don't know her name yet, ask it early in the conversation (after your greeting), then ask how to say it, so you say it the way she does. If her name came from speech and you are unsure of the spelling, ask her to spell it or type it.
+- Once you know it, use it now and then, not every turn.
+- When she tells you her name, or corrects how you say it, fill learner_name: name = her name spelled her way; say = a respelling an English voice will read correctly, with the stressed syllable in capitals (Ximena = Hee-MEH-nah, Lucía = Loo-SEE-ah). In "say" always write her name normally; the app swaps in the respelling. Otherwise leave learner_name with empty strings.
+
 Pronunciation scores
 Her spoken turns can include scores from a pronunciation judge: 0 to 100 per word, plus overall accuracy and fluency. 75 or more is good, 60 to 74 is understandable but off, under 60 needs work. Word errors can be Mispronunciation, Omission or Insertion, sometimes with a short note on what sounded off. Spanish or mixed speech usually has no scores.
 - Fix at most one or two things per turn: the ones that matter most, usually the lowest-scoring important word.
@@ -49,11 +54,19 @@ Output
 - say: exactly what you will say aloud.
 - corrections: up to 2 items about words she said this turn. word = the correct English word; heard = what she seemed to say, or ""; tip = a short tip in Spanish with the respelling. Empty when there is nothing to fix.
 - new_words: English words you taught this turn that are not in her known list, with the Spanish meaning. Empty if none.
+- learner_name: see "Her name". Empty strings unless she told you her name or how to say it this turn.
 
 Her known words (with how they sound to a Spanish reader)
 ${KNOWN}`;
 
-export const topicNote = (topic: Topic) => `Current topic: ${TOPICS[topic]}`;
+/** Per-request context: the topic and what you already know about her. */
+export const sessionNote = (topic: Topic, learner: LearnerName | null) =>
+	[
+		`Current topic: ${TOPICS[topic]}`,
+		learner?.name
+			? `Her name is ${learner.name}, said like "${learner.say || learner.name}". You already know it from an earlier conversation: don't ask again.`
+			: "You don't know her name yet.",
+	].join("\n");
 
 /** Her turn as the tutor sees it: what she said plus the engine's scores. */
 export function describeAttempt(a: Attempt): string {

@@ -22,12 +22,17 @@ const AttemptSchema = z.object({
 	accuracy: z.number().optional(),
 	fluency: z.number().optional(),
 });
+const LearnerSchema = z.object({
+	name: z.string().max(60),
+	say: z.string().max(80),
+});
 const TutorReplySchema = z.object({
 	say: z.string().max(1200),
 	corrections: z
 		.array(z.object({ word: z.string(), heard: z.string(), tip: z.string() }))
 		.max(5),
 	new_words: z.array(z.object({ en: z.string(), es: z.string() })).max(10),
+	learner_name: LearnerSchema.default({ name: "", say: "" }),
 });
 const RequestSchema = z.object({
 	topic: z.enum(["libre", "cocina", "jardin", "casa"]),
@@ -40,6 +45,7 @@ const RequestSchema = z.object({
 		)
 		.max(40),
 	latest: AttemptSchema.nullable(),
+	learner: LearnerSchema.nullable().default(null),
 });
 
 export const Route = createFileRoute("/api/bot/reply")({
@@ -62,10 +68,10 @@ export const Route = createFileRoute("/api/bot/reply")({
 				);
 				if (!parsed.success)
 					return Response.json({ error: "bad_request" }, { status: 400 });
-				const { topic, history, latest } = parsed.data;
+				const { topic, history, latest, learner } = parsed.data;
 				const started = Date.now();
 				try {
-					const r = await tutorReply(topic, history, latest);
+					const r = await tutorReply(topic, history, latest, learner);
 					const body: ReplyResponse = {
 						reply: r.reply,
 						meta: {
