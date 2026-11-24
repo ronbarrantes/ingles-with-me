@@ -518,6 +518,7 @@ function PasscodeScreen({
 }) {
 	const [code, setCode] = useState("");
 	const [checking, setChecking] = useState(false);
+	const [show, setShow] = useState(false);
 	const [problem, setProblem] = useState("");
 	const submit = async () => {
 		setChecking(true);
@@ -548,9 +549,11 @@ function PasscodeScreen({
 			}}
 		>
 			<h1 className="text-4xl font-extrabold">Habla con Ale</h1>
-			<p className="text-muted">Escribe el código de acceso.</p>
+			<p className="text-muted">
+				Escribe el código de acceso. Se guarda en este teléfono.
+			</p>
 			<input
-				type="password"
+				type={show ? "text" : "password"}
 				value={code}
 				onChange={(e) => setCode(e.target.value)}
 				autoComplete="off"
@@ -559,6 +562,15 @@ function PasscodeScreen({
 				spellCheck={false}
 				className="h-12 border-2 border-ink bg-card px-3 outline-none"
 			/>
+			<label className="flex items-center gap-2 text-sm">
+				<input
+					type="checkbox"
+					checked={show}
+					onChange={(e) => setShow(e.target.checked)}
+					className="h-5 w-5 accent-[var(--ink)]"
+				/>
+				Mostrar código
+			</label>
 			{(problem || error) && (
 				<p className="text-sm text-[#E4572E]">{problem || error}</p>
 			)}
