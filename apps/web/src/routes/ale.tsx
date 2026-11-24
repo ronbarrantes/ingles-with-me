@@ -587,17 +587,25 @@ function LearnerBubble({ attempt }: { attempt: Attempt }) {
 		<div className="ml-auto max-w-[85%] border-2 border-ink bg-card px-3 py-2">
 			<p className="text-lg leading-snug">
 				{attempt.words?.length
-					? attempt.words.map((w, i) => (
-							<span
+					? attempt.words.map((w, i) =>
+							w.lang === "es" ? (
+								// Spanish in a mixed sentence: shown, not scored.
 								// biome-ignore lint/suspicious/noArrayIndexKey: fixed list
-								key={i}
-								className="underline decoration-4 underline-offset-4"
-								style={{ textDecorationColor: scoreColor(w.accuracy) }}
-								title={`${Math.round(w.accuracy)}`}
-							>
-								{w.word}{" "}
-							</span>
-						))
+								<span key={i} className="italic">
+									{w.word}{" "}
+								</span>
+							) : (
+								<span
+									// biome-ignore lint/suspicious/noArrayIndexKey: fixed list
+									key={i}
+									className="underline decoration-4 underline-offset-4"
+									style={{ textDecorationColor: scoreColor(w.accuracy) }}
+									title={`${Math.round(w.accuracy)}`}
+								>
+									{w.word}{" "}
+								</span>
+							),
+						)
 					: attempt.text}
 			</p>
 			{attempt.accuracy !== undefined && (

@@ -14,6 +14,7 @@ const JudgeSchema = z.object({
 	words: z.array(
 		z.object({
 			word: z.string(),
+			lang: z.enum(["en", "es"]),
 			accuracy: z.number(),
 			error: z.enum(["None", "Mispronunciation", "Omission", "Insertion"]),
 			note: z.string(),
@@ -24,12 +25,12 @@ const JudgeSchema = z.object({
 const INSTRUCTIONS = `You assess the spoken English of an adult whose first language is Latin American Spanish. The recording is one short turn in a practice conversation.
 
 1. Transcribe exactly what they said, in the language they spoke. Do not correct their grammar or words.
-2. lang = "es" if they spoke mostly Spanish, otherwise "en".
-3. If lang is "en", score every word they said for pronunciation against standard American English, 0 to 100:
+2. lang = "es" if they spoke mostly Spanish, otherwise "en". Mixing is normal ("I want to see the mariposa").
+3. If lang is "en", list every word they said, in order, each with its own lang. Spanish words (lang "es") are not scored: accuracy 0, error "None", note "". Score each English word (lang "en") for pronunciation against standard American English, 0 to 100:
    90-100 clear and natural; 75-89 a light accent but clearly the right word; 60-74 understandable with a noticeable wrong sound; under 60 hard to understand, or it sounds like a different word.
    An accent alone is not an error. Use error "Mispronunciation" for words under 75, "Omission" for a word they clearly skipped, "Insertion" for an extra word, otherwise "None".
    note: for words under 75, a few words IN SPANISH on what sounded off (for example "la th sonó como t", "i corta en vez de ii larga"), else "". The learner reads these notes.
-   accuracy = overall pronunciation 0-100; fluency = smoothness and pace 0-100.
+   accuracy = overall pronunciation of the English words 0-100; fluency = smoothness and pace 0-100.
 4. If lang is "es", return an empty words list and accuracy and fluency of 0.
 Be consistent: the same recording should get the same scores.`;
 

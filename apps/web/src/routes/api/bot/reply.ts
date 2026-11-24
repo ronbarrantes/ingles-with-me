@@ -13,6 +13,7 @@ const AttemptSchema = z.object({
 		.array(
 			z.object({
 				word: z.string().max(60),
+				lang: z.enum(["en", "es"]).optional(),
 				accuracy: z.number(),
 				error: z.string().max(40),
 				note: z.string().max(120).optional(),

@@ -75,6 +75,19 @@ describe("teacher prompt", () => {
 		expect(text).toContain("Overall accuracy 67");
 	});
 
+	it("marks Spanish words in a mixed turn instead of scoring them", () => {
+		const text = describeAttempt({
+			text: "I see a mariposa",
+			lang: "en",
+			words: [
+				{ word: "see", accuracy: 90, error: "None" },
+				{ word: "mariposa", lang: "es", accuracy: 0, error: "None" },
+			],
+		});
+		expect(text).toContain("mariposa (Spanish)");
+		expect(text).not.toContain("mariposa 0");
+	});
+
 	it("says when there are no scores", () => {
 		expect(describeAttempt({ text: "hola", lang: "es" })).toContain(
 			"No pronunciation scores",
