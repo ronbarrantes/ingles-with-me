@@ -2,7 +2,7 @@
 // variable in the form "provider:model", so swapping is a settings change:
 //   TEACHER=anthropic:claude-sonnet-5-5   (or google:gemini-4-hydrogen …)
 //   JUDGE=google:gemini-4-hydrogen         (hears her and scores pronunciation)
-//   VOICE=google:en-US-Chirp3-HD-Aoede     (speaks Sam's replies)
+//   VOICE=google:en-US-Chirp3-HD-Aoede     (speaks Ale's replies)
 // BOT_MOCK=1 answers every role with canned data (testing without keys).
 
 export interface Spec {

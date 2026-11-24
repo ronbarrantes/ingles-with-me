@@ -46,7 +46,7 @@ function mockReply(latest: Attempt | null): Result {
 	const weak = latest?.words?.filter((w) => w.accuracy < 70)[0];
 	const reply: TutorReply = !latest
 		? {
-				say: "Hi! I'm Sam. What are you cooking today?",
+				say: "Hi! I'm Ale. What are you cooking today?",
 				corrections: [],
 				new_words: [],
 			}
