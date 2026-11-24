@@ -13,6 +13,7 @@
 			"**/index.html",
 			"**/vite.config.ts",
 			"**/playwright.config.ts",
+			"**/vitest.config.ts",
 			"**/e2e/**/*",
 			"!**/src/routeTree.gen.ts",
 			"!**/src/styles.css"
