@@ -114,6 +114,7 @@ export function describeAttempt(a: Attempt): string {
 	if (a.words?.length) {
 		const words = a.words
 			.map((w) => {
+				if (w.lang === "es") return `${w.word} (Spanish)`;
 				const err = w.error && w.error !== "None" ? ` ${w.error}` : "";
 				const note = w.note ? ` (${w.note})` : "";
 				return `${w.word} ${Math.round(w.accuracy)}${err}${note}`;

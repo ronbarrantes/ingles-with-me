@@ -7,6 +7,8 @@ import type { Topic } from "./topics";
 /** One word as the speech engine heard it, with its pronunciation score. */
 export interface WordScore {
 	word: string;
+	/** "es" for a Spanish word in a mixed sentence: not scored. */
+	lang?: "en" | "es";
 	/** 0–100. */
 	accuracy: number;
 	/** e.g. "None", "Mispronunciation", "Omission", "Insertion". */

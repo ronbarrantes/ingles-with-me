@@ -30,6 +30,7 @@ export function recordScores(
 	const mastered: string[] = [];
 	for (const s of scores) {
 		const word = clean(s.word);
+		if (s.lang === "es") continue; // Spanish in a mixed sentence: not scored
 		if (word.length < 2 || s.error === "Omission" || s.error === "Insertion")
 			continue;
 		const score = Math.round(s.accuracy);

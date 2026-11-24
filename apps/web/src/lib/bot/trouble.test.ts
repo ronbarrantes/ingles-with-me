@@ -71,6 +71,17 @@ describe("hard words", () => {
 		expect(list.map((h) => h.word)).toEqual(["three", "ship"]);
 	});
 
+	it("skips Spanish words in a mixed sentence", () => {
+		const { list } = recordScores(
+			[],
+			[
+				{ word: "mariposa", lang: "es", accuracy: 0, error: "None" },
+				ws("butterfly", 60),
+			],
+		);
+		expect(list.map((h) => h.word)).toEqual(["butterfly"]);
+	});
+
 	it("normalizes punctuation and case, keeps apostrophes", () => {
 		expect(clean("Don’t!")).toBe("don't");
 		expect(clean("¿Mariposa?")).toBe("mariposa");
