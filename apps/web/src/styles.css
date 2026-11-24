@@ -52,13 +52,14 @@
 	--color-on-accent: var(--on-accent);
 	--font-sans: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
 	--font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
-	--radius-xs: 1px;
-	--radius-sm: 2px;
-	--radius-md: 2px;
-	--radius-lg: 2px;
-	--radius-xl: 2px;
-	--radius-2xl: 3px;
-	--radius-3xl: 3px;
+	/* A little softness: 4px on small things, 6px on cards. */
+	--radius-xs: 2px;
+	--radius-sm: 4px;
+	--radius-md: 6px;
+	--radius-lg: 8px;
+	--radius-xl: 8px;
+	--radius-2xl: 8px;
+	--radius-3xl: 8px;
 }
 
 html,

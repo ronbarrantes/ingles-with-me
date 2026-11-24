@@ -60,7 +60,7 @@ function Review() {
 							</span>
 						</>
 					);
-					const cls = "flex min-h-40 flex-col justify-between p-5";
+					const cls = "flex min-h-40 flex-col justify-between rounded-md p-5";
 					return l.count > 0 ? (
 						<Link
 							key={l.id}

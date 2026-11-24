@@ -52,7 +52,7 @@ function Words() {
 		<div className="px-5 py-8">
 			<h1 className="px-1 text-5xl font-extrabold">{t.words.title}</h1>
 
-			<label className="mt-5 flex h-12 items-center gap-2 border-2 border-ink bg-card px-3">
+			<label className="mt-5 flex h-12 items-center gap-2 rounded-sm border-2 border-ink bg-card px-3">
 				<SearchIcon className="h-5 w-5 opacity-60" />
 				<input
 					type="search"
@@ -72,7 +72,7 @@ function Words() {
 							type="button"
 							aria-pressed={on}
 							onClick={() => setFilter(c.id)}
-							className="h-9 shrink-0 border-2 px-3 text-sm font-bold"
+							className="h-9 shrink-0 rounded-sm border-2 px-3 text-sm font-bold"
 							style={
 								on
 									? {
@@ -98,7 +98,7 @@ function Words() {
 							<button
 								type="button"
 								onClick={() => setOpen(w)}
-								className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 border-2 border-ink bg-card p-2 transition-transform active:scale-95"
+								className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-md border-2 border-ink bg-card p-2 transition-transform active:scale-95"
 							>
 								<span
 									className="absolute inset-x-0 top-0 h-1.5"
@@ -181,7 +181,7 @@ function WordOverlay({ word, onClose }: { word: Word; onClose: () => void }) {
 				<ListenButton
 					text={word.en}
 					label
-					className="mt-5 h-16 border-2 border-ink text-xl font-bold"
+					className="mt-5 h-16 rounded-sm border-2 border-ink text-xl font-bold"
 				/>
 			</div>
 		</div>

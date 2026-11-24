@@ -46,7 +46,7 @@ export function Card({
 				style={{ transform: flipped ? "rotateY(180deg)" : "none" }}
 			>
 				{/* Front */}
-				<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 border-2 border-ink bg-card p-6 [backface-visibility:hidden]">
+				<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-md border-2 border-ink bg-card p-6 [backface-visibility:hidden]">
 					<span className="text-center text-6xl font-extrabold break-words">
 						{word.en}
 					</span>
@@ -58,7 +58,7 @@ export function Card({
 				</div>
 
 				{/* Back */}
-				<div className="absolute inset-0 flex flex-col border-2 border-ink bg-card [container-type:size] [backface-visibility:hidden] [transform:rotateY(180deg)]">
+				<div className="absolute inset-0 flex flex-col overflow-hidden rounded-md border-2 border-ink bg-card [container-type:size] [backface-visibility:hidden] [transform:rotateY(180deg)]">
 					<span className="absolute inset-x-14 top-5 text-center text-[11px] font-bold tracking-[0.18em] text-muted uppercase">
 						{t.categories[word.category]}
 					</span>
@@ -200,7 +200,7 @@ function CornerButton({
 			}}
 			aria-label={label}
 			aria-pressed={on}
-			className={`absolute top-3 grid h-9 w-9 place-items-center border-2 border-ink ${side === "left" ? "left-3" : "right-3"}`}
+			className={`absolute top-3 grid h-9 w-9 place-items-center rounded-sm border-2 border-ink ${side === "left" ? "left-3" : "right-3"}`}
 			style={
 				on
 					? { background: color, color: onColor(color), borderColor: color }
