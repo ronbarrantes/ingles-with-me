@@ -100,7 +100,7 @@ function Topics() {
 								key={id}
 								to="/aprender/$group"
 								params={{ group: id }}
-								className="@container aspect-[1/1.2] h-[min(36dvh,20rem,82vw)] shrink-0 snap-center transition-transform active:scale-[0.97]"
+								className="@container aspect-[1/1.2] overflow-hidden rounded-md h-[min(36dvh,20rem,82vw)] shrink-0 snap-center transition-transform active:scale-[0.97]"
 								style={{ background: color, color: onColor(color) }}
 							>
 								{/* Sizes in cqw scale with the card, so small cards stay readable. */}

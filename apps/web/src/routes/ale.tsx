@@ -370,7 +370,7 @@ function Bot() {
 			</header>
 
 			{(missing.length > 0 || status?.mock) && (
-				<p className="mx-5 mt-3 border-2 border-dashed border-line px-3 py-2 text-xs text-muted">
+				<p className="mx-5 mt-3 rounded-sm border-2 border-dashed border-line px-3 py-2 text-xs text-muted">
 					{status?.mock ? "Modo de prueba (respuestas falsas). " : ""}
 					{missing.length > 0 && `Sin configurar: ${missing.join(" · ")}`}
 				</p>
@@ -410,7 +410,7 @@ function Bot() {
 										key={c.id}
 										type="button"
 										onClick={() => pickTopic(c.id)}
-										className="h-11 border-2 px-3 font-bold"
+										className="h-11 rounded-sm border-2 px-3 font-bold"
 										style={{ borderColor: c.color }}
 									>
 										{c.emoji} {c.label}
@@ -452,7 +452,7 @@ function Bot() {
 				{panel === "menu" && (
 					<div
 						role="menu"
-						className="absolute right-4 bottom-20 w-64 border-2 border-ink bg-card"
+						className="absolute right-4 bottom-20 w-64 overflow-hidden rounded-md border-2 border-ink bg-card"
 					>
 						<MenuItem
 							onClick={() => setPanel("hard")}
@@ -503,7 +503,7 @@ function Bot() {
 						onClick={() => setPanel((p) => (p === "menu" ? "none" : "menu"))}
 						aria-label="Más opciones"
 						aria-expanded={panel === "menu"}
-						className="absolute right-4 bottom-4 grid h-12 w-12 place-items-center border-2 border-ink bg-card text-xl font-extrabold"
+						className="absolute right-4 bottom-4 grid h-12 w-12 place-items-center rounded-sm border-2 border-ink bg-card text-xl font-extrabold"
 					>
 						{panel === "menu" ? "✕" : "⋯"}
 						{hard.length > 0 && panel === "none" && (
@@ -532,7 +532,7 @@ function Bot() {
 					type="button"
 					onClick={handsFree ? pause : start}
 					disabled={!status}
-					className="h-14 w-full text-lg font-extrabold disabled:opacity-40"
+					className="h-14 w-full rounded-sm text-lg font-extrabold disabled:opacity-40"
 					style={
 						handsFree
 							? { border: "2px solid var(--ink)" }
@@ -552,12 +552,12 @@ function Bot() {
 						value={typed}
 						onChange={(e) => setTyped(e.target.value)}
 						placeholder="…o escribe aquí"
-						className="h-11 min-w-0 flex-1 border-2 border-ink bg-card px-3 outline-none placeholder:text-muted"
+						className="h-11 min-w-0 flex-1 rounded-sm border-2 border-ink bg-card px-3 outline-none placeholder:text-muted"
 						maxLength={600}
 					/>
 					<button
 						type="submit"
-						className="h-11 border-2 border-ink px-4 font-bold"
+						className="h-11 rounded-sm border-2 border-ink px-4 font-bold"
 						disabled={
 							!typed.trim() ||
 							mode === "thinking" ||
@@ -584,7 +584,7 @@ function Bot() {
 
 function LearnerBubble({ attempt }: { attempt: Attempt }) {
 	return (
-		<div className="ml-auto max-w-[85%] border-2 border-ink bg-card px-3 py-2">
+		<div className="ml-auto max-w-[85%] rounded-sm border-2 border-ink bg-card px-3 py-2">
 			<p className="text-lg leading-snug">
 				{attempt.words?.length
 					? attempt.words.map((w, i) =>
@@ -675,7 +675,7 @@ function HardWords({
 						<button
 							type="button"
 							onClick={() => onPractice(h.word)}
-							className="h-8 shrink-0 px-2.5 text-xs font-bold"
+							className="h-8 shrink-0 rounded-sm px-2.5 text-xs font-bold"
 							style={{ background: color, color: onColor(color) }}
 						>
 							Practicar
@@ -770,7 +770,7 @@ function TutorBubble({ reply, color }: { reply: TutorReply; color: string }) {
 					{reply.new_words.map((w) => (
 						<span
 							key={w.en}
-							className="px-2 py-0.5 text-xs font-bold"
+							className="rounded-sm px-2 py-0.5 text-xs font-bold"
 							style={{ background: color, color: onColor(color) }}
 						>
 							+ {w.en} · {w.es}
@@ -833,7 +833,7 @@ function PasscodeScreen({
 				autoCapitalize="none"
 				autoCorrect="off"
 				spellCheck={false}
-				className="h-12 border-2 border-ink bg-card px-3 outline-none"
+				className="h-12 rounded-sm border-2 border-ink bg-card px-3 outline-none"
 			/>
 			<label className="flex items-center gap-2 text-sm">
 				<input
@@ -849,7 +849,7 @@ function PasscodeScreen({
 			)}
 			<button
 				type="submit"
-				className="h-13 bg-ink font-extrabold text-paper"
+				className="h-13 rounded-sm bg-ink font-extrabold text-paper"
 				disabled={!code.trim() || checking}
 			>
 				{checking ? "Revisando…" : "Entrar"}

@@ -92,7 +92,7 @@ function Study() {
 							<button
 								type="button"
 								onClick={again}
-								className="h-14 font-bold"
+								className="h-14 rounded-sm font-bold"
 								style={{ background: color, color: onColor(color) }}
 							>
 								{t.deck.another}
@@ -102,7 +102,7 @@ function Study() {
 							<Link
 								to="/repasar/$list"
 								params={{ list: "due" }}
-								className="grid h-14 place-items-center border-2 border-ink font-bold"
+								className="grid h-14 place-items-center rounded-sm border-2 border-ink font-bold"
 							>
 								{fmt(t.deck.reviewDue, { n: due })}
 							</Link>

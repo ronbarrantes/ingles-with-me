@@ -115,7 +115,7 @@ export function SwipeDeck({
 						return (
 							<div
 								key={w.id}
-								className="absolute inset-0 border-2 border-ink bg-card"
+								className="absolute inset-0 rounded-md border-2 border-ink bg-card"
 								style={{
 									transform: `translateY(${depth * 12}px) scale(${1 - depth * 0.045})`,
 									transition: dragging ? "none" : "transform 300ms ease-out",
@@ -240,19 +240,19 @@ export function SwipeDeck({
 				<button
 					type="button"
 					onClick={() => fling(-1, 1.2)}
-					className="h-16 border-2 border-ink text-2xl font-bold"
+					className="h-16 rounded-sm border-2 border-ink text-2xl font-bold"
 					aria-label={t.deck.again}
 				>
 					✕
 				</button>
 				<ListenButton
 					text={top.en}
-					className="h-16 border-2 border-ink text-2xl"
+					className="h-16 rounded-sm border-2 border-ink text-2xl"
 				/>
 				<button
 					type="button"
 					onClick={() => fling(1, 1.2)}
-					className="h-16 text-2xl font-bold"
+					className="h-16 rounded-sm text-2xl font-bold"
 					style={{ background: color, color: onColor(color) }}
 					aria-label={t.deck.know}
 				>
