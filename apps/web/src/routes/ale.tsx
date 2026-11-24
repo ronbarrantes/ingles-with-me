@@ -378,7 +378,7 @@ function Bot() {
 
 			<div className="mt-4 flex items-center gap-4 px-5">
 				<span
-					className={`grid h-16 w-16 shrink-0 place-items-center border-2 border-ink text-3xl ${mode === "listening" ? "animate-pulse" : ""}`}
+					className={`grid h-16 w-16 shrink-0 place-items-center rounded-md border-2 border-ink text-3xl ${mode === "listening" ? "animate-pulse" : ""}`}
 					style={{ background: color }}
 					aria-hidden
 				>
