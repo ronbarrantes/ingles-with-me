@@ -492,10 +492,31 @@ function LearnerBubble({ attempt }: { attempt: Attempt }) {
 	);
 }
 
+/** What Ale wants her to say comes in "quotes": show it bold and underlined. */
+function Practice({ text, color }: { text: string; color: string }) {
+	const parts = text.split(/["“”]([^"“”]+)["“”]/);
+	return parts.map((part, i) =>
+		i % 2 === 1 ? (
+			<strong
+				// biome-ignore lint/suspicious/noArrayIndexKey: fixed split of one string
+				key={i}
+				className="font-extrabold underline decoration-4 underline-offset-4"
+				style={{ textDecorationColor: color }}
+			>
+				{part}
+			</strong>
+		) : (
+			part
+		),
+	);
+}
+
 function TutorBubble({ reply, color }: { reply: TutorReply; color: string }) {
 	return (
 		<div className="max-w-[90%]">
-			<p className="text-lg leading-snug font-semibold">{reply.say}</p>
+			<p className="text-lg leading-snug font-semibold">
+				<Practice text={reply.say} color={color} />
+			</p>
 			{reply.corrections.map((c) => (
 				<p
 					key={c.word}
