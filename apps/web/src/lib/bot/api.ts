@@ -42,7 +42,7 @@ async function post(path: string, body: unknown) {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
-			"x-bot-passcode": getPasscode(),
+			"x-bot-passcode": encodeURIComponent(getPasscode()),
 		},
 		body: JSON.stringify(body),
 	});
@@ -56,6 +56,11 @@ async function post(path: string, body: unknown) {
 	}
 	return res;
 }
+
+/** Throws BotError("wrong_passcode" | "not_configured") if the saved code doesn't work. */
+export const checkSavedPasscode = async () => {
+	await post("/api/bot/check", {});
+};
 
 export const fetchStatus = async (): Promise<BotStatus> =>
 	(await fetch("/api/bot/status")).json();
