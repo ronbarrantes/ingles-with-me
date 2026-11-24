@@ -3,6 +3,7 @@
 import type {
 	Attempt,
 	BotStatus,
+	HardWord,
 	HearResponse,
 	LearnerName,
 	ReplyResponse,
@@ -76,8 +77,11 @@ export const fetchReply = async (
 	history: Turn[],
 	latest: Attempt | null,
 	learner: LearnerName | null,
+	hard: HardWord[],
 ): Promise<ReplyResponse> =>
-	(await post("/api/bot/reply", { topic, history, latest, learner })).json();
+	(
+		await post("/api/bot/reply", { topic, history, latest, learner, hard })
+	).json();
 
 export const fetchSpeech = async (text: string): Promise<Blob> =>
 	(await post("/api/bot/speak", { text })).blob();

@@ -4,7 +4,7 @@
 
 import type {
 	Attempt,
-	LearnerName,
+	TeacherContext,
 	Topic,
 	Turn,
 	TutorReply,
@@ -40,20 +40,20 @@ export async function tutorReply(
 	topic: Topic,
 	history: Turn[],
 	latest: Attempt | null,
-	learner: LearnerName | null,
+	ctx: TeacherContext,
 ): Promise<Result> {
-	if (mocked()) return mockReply(latest, learner);
+	if (mocked()) return mockReply(latest, ctx);
 	const { provider, model } = teacherSpec();
 	const p = providers[provider];
 	if (!p) throw new Error(`unknown teacher provider "${provider}"`);
-	return p.reply(model, topic, history, latest, learner);
+	return p.reply(model, topic, history, latest, ctx);
 }
 
 const NO_NAME = { name: "" };
 
 function mockReply(
 	latest: Attempt | null,
-	learner: LearnerName | null,
+	{ learner }: TeacherContext,
 ): Result {
 	const told = latest?.text.match(/my name is (\p{L}+)/iu)?.[1];
 	if (told) {

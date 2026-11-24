@@ -45,6 +45,20 @@ const RequestSchema = z.object({
 		.max(40),
 	latest: AttemptSchema.nullable(),
 	learner: LearnerSchema.nullable().default(null),
+	hard: z
+		.array(
+			z.object({
+				word: z.string().max(40),
+				misses: z.number(),
+				last: z.number(),
+				best: z.number(),
+				streak: z.number(),
+				note: z.string().max(120),
+				at: z.number(),
+			}),
+		)
+		.max(12)
+		.default([]),
 });
 
 export const Route = createFileRoute("/api/bot/reply")({
@@ -67,10 +81,10 @@ export const Route = createFileRoute("/api/bot/reply")({
 				);
 				if (!parsed.success)
 					return Response.json({ error: "bad_request" }, { status: 400 });
-				const { topic, history, latest, learner } = parsed.data;
+				const { topic, history, latest, learner, hard } = parsed.data;
 				const started = Date.now();
 				try {
-					const r = await tutorReply(topic, history, latest, learner);
+					const r = await tutorReply(topic, history, latest, { learner, hard });
 					const body: ReplyResponse = {
 						reply: r.reply,
 						meta: {

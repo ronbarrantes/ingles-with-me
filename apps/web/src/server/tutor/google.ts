@@ -3,7 +3,7 @@
 
 import type {
 	Attempt,
-	LearnerName,
+	TeacherContext,
 	Topic,
 	Turn,
 	TutorReply,
@@ -17,7 +17,7 @@ export async function reply(
 	topic: Topic,
 	history: Turn[],
 	latest: Attempt | null,
-	learner: LearnerName | null,
+	ctx: TeacherContext,
 ) {
 	const res = await gemini().models.generateContent({
 		model,
@@ -26,7 +26,7 @@ export async function reply(
 			parts: [{ text: m.content }],
 		})),
 		config: {
-			systemInstruction: `${SYSTEM_PROMPT}\n\n${sessionNote(topic, learner)}`,
+			systemInstruction: `${SYSTEM_PROMPT}\n\n${sessionNote(topic, ctx)}`,
 			responseMimeType: "application/json",
 			responseJsonSchema: geminiSchema(ReplySchema),
 			maxOutputTokens: 1500,

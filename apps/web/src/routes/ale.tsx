@@ -13,9 +13,11 @@ import {
 import { Captions, captionsAvailable } from "#/lib/bot/captions";
 import { getLearner, setLearner } from "#/lib/bot/learner";
 import { Mic } from "#/lib/bot/mic";
+import { getHardWords, recordScores, setHardWords } from "#/lib/bot/trouble";
 import type {
 	Attempt,
 	BotStatus,
+	HardWord,
 	LearnerName,
 	Meta,
 	Topic,
@@ -64,10 +66,13 @@ function Bot() {
 	const [timing, setTiming] = useState<{ judge?: Meta; teacher?: Meta }>({});
 	const [spent, setSpent] = useState(0);
 	const [learner, setLearnerState] = useState<LearnerName | null>(null);
+	const [hard, setHard] = useState<HardWord[]>([]);
+	const [showHard, setShowHard] = useState(false);
 
 	// Refs so async callbacks always see the latest values.
 	const turnsRef = useRef<Turn[]>([]);
 	const learnerRef = useRef<LearnerName | null>(null);
+	const hardRef = useRef<HardWord[]>([]);
 	const handsFreeRef = useRef(false);
 	const topicRef = useRef<Topic>("libre");
 	const statusRef = useRef<BotStatus | null>(null);
@@ -88,9 +93,25 @@ function Bot() {
 		setLearner(learnerRef.current);
 	};
 
+	const saveHard = (list: HardWord[]) => {
+		hardRef.current = list;
+		setHard(list);
+		setHardWords(list);
+	};
+
+	// The judge scored a turn: remember hard words, celebrate mastered ones.
+	const noteScores = (a: Attempt) => {
+		if (a.lang !== "en" || !a.words?.length) return;
+		const { list, mastered } = recordScores(hardRef.current, a.words);
+		saveHard(list);
+		if (mastered.length) setNote(`🎯 ¡Ya dices bien: ${mastered.join(", ")}!`);
+	};
+
 	useEffect(() => {
 		learnerRef.current = getLearner();
 		setLearnerState(learnerRef.current);
+		hardRef.current = getHardWords();
+		setHard(hardRef.current);
 		fetchStatus()
 			.then((s) => {
 				setStatus(s);
@@ -140,6 +161,7 @@ function Bot() {
 				history,
 				latest,
 				learnerRef.current,
+				hardRef.current.slice(0, 8),
 			);
 			if (stale()) return;
 			// She told Ale her name (or fixed its spelling): remember it on this phone.
@@ -184,6 +206,7 @@ function Bot() {
 					try {
 						const res = await fetchHear(wav, caption);
 						attempt = res.attempt;
+						noteScores(attempt);
 						setTiming((t) => ({ ...t, judge: res.meta }));
 						addCost(res.meta);
 					} catch (e) {
@@ -262,6 +285,16 @@ function Bot() {
 		mic.current?.pause();
 		captions.current?.stop();
 		void askAle({ text });
+	};
+
+	// From the hard-words list: ask Ale to work on one word.
+	const practice = (word: string) => {
+		if (busy.current) return;
+		voice.current ??= new Voice(Boolean(statusRef.current?.voice.ready));
+		voice.current.unlock();
+		mic.current?.pause();
+		captions.current?.stop();
+		void askAle({ text: `Quiero practicar "${word}".`, lang: "es" });
 	};
 
 	const changeTopic = (t: Topic) => {
@@ -363,17 +396,45 @@ function Bot() {
 						{face.label}
 					</p>
 				</div>
-				{learner && (
-					<button
-						type="button"
-						onClick={() => rememberName(null)}
-						className="ml-auto shrink-0 border-2 border-ink px-2 py-1 text-xs font-bold"
-						title="Ale olvidará tu nombre y te lo preguntará otra vez"
-					>
-						{learner.name} ✕
-					</button>
-				)}
+				<div className="ml-auto flex shrink-0 flex-col items-end gap-1.5">
+					{learner && (
+						<button
+							type="button"
+							onClick={() => rememberName(null)}
+							className="border-2 border-ink px-2 py-1 text-xs font-bold"
+							title="Ale olvidará tu nombre y te lo preguntará otra vez"
+						>
+							{learner.name} ✕
+						</button>
+					)}
+					{hard.length > 0 && (
+						<button
+							type="button"
+							onClick={() => setShowHard((v) => !v)}
+							aria-expanded={showHard}
+							className="border-2 border-ink px-2 py-1 text-xs font-bold"
+							aria-label={`Palabras difíciles: ${hard.length}`}
+						>
+							🎯 {hard.length}
+						</button>
+					)}
+				</div>
 			</div>
+
+			{showHard && hard.length > 0 && (
+				<HardWords
+					words={hard}
+					color={color}
+					onPractice={(w) => {
+						setShowHard(false);
+						practice(w);
+					}}
+					onClear={() => {
+						saveHard([]);
+						setShowHard(false);
+					}}
+				/>
+			)}
 
 			<div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto border-t-2 border-line px-5 py-4">
 				{turns.length === 0 && (
@@ -488,6 +549,65 @@ function LearnerBubble({ attempt }: { attempt: Attempt }) {
 					{Math.round(attempt.fluency ?? 0)}
 				</p>
 			)}
+		</div>
+	);
+}
+
+/** Words she struggles with, hardest first; tap one to practice it with Ale. */
+function HardWords({
+	words,
+	color,
+	onPractice,
+	onClear,
+}: {
+	words: HardWord[];
+	color: string;
+	onPractice: (word: string) => void;
+	onClear: () => void;
+}) {
+	return (
+		<div className="mx-5 mt-3 border-2 border-ink bg-card p-3">
+			<div className="flex items-baseline justify-between">
+				<p className="font-extrabold">Palabras difíciles</p>
+				<button
+					type="button"
+					onClick={onClear}
+					className="text-xs text-muted underline underline-offset-2"
+				>
+					Borrar lista
+				</button>
+			</div>
+			<p className="mt-0.5 text-xs text-muted">
+				Ale vuelve a ellas. Salen de la lista al decirlas bien dos veces.
+			</p>
+			<ul className="mt-2 max-h-48 space-y-1.5 overflow-y-auto">
+				{words.map((h) => (
+					<li key={h.word} className="flex items-center gap-2">
+						<span
+							className="w-9 shrink-0 text-right text-sm font-bold tabular-nums"
+							style={{ color: scoreColor(h.last) }}
+						>
+							{h.last}
+						</span>
+						<span className="min-w-0 flex-1">
+							<span className="font-bold">{h.word}</span>
+							{h.note && (
+								<span className="block truncate text-xs text-muted">
+									{h.note}
+								</span>
+							)}
+						</span>
+						<button
+							type="button"
+							onClick={() => onPractice(h.word)}
+							className="h-8 shrink-0 px-2.5 text-xs font-bold"
+							style={{ background: color, color: onColor(color) }}
+						>
+							Practicar
+						</button>
+					</li>
+				))}
+			</ul>
 		</div>
 	);
 }

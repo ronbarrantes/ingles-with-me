@@ -147,3 +147,45 @@ test.describe("API guards", () => {
 		expect([400, 503]).toContain(speak.status());
 	});
 });
+
+test("hard words: Ale gets them, and the list can practice one", async ({
+	page,
+}) => {
+	await page.addInitScript(() => {
+		localStorage.setItem(
+			"iwm:hard-words",
+			JSON.stringify([
+				{
+					word: "three",
+					misses: 3,
+					last: 52,
+					best: 61,
+					streak: 0,
+					note: "la th sonó como t",
+					at: 1,
+				},
+				{
+					word: "very",
+					misses: 1,
+					last: 70,
+					best: 70,
+					streak: 0,
+					note: "",
+					at: 2,
+				},
+			]),
+		);
+	});
+	await unlockAle(page);
+	const sent = page.waitForRequest("**/api/bot/reply");
+	await page.getByRole("button", { name: "Palabras difíciles: 2" }).click();
+	await expect(page.getByText("la th sonó como t")).toBeVisible();
+	await page.getByRole("button", { name: "Practicar" }).first().click();
+	const body = (await sent).postDataJSON();
+	expect(body.hard.map((h: { word: string }) => h.word)).toEqual([
+		"three",
+		"very",
+	]);
+	expect(body.latest.text).toBe('Quiero practicar "three".');
+	await expect(page.getByText('Quiero practicar "three".')).toBeVisible();
+});
