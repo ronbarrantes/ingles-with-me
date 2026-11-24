@@ -16,9 +16,8 @@ describe("teacher prompt", () => {
 
 	it("tells the teacher whether it knows her name", () => {
 		expect(sessionNote("cocina", null)).toContain("don't know her name");
-		const note = sessionNote("cocina", { name: "Ximena", say: "Hee-MEH-nah" });
+		const note = sessionNote("cocina", { name: "Ximena" });
 		expect(note).toContain("Her name is Ximena");
-		expect(note).toContain("Hee-MEH-nah");
 		expect(note).toContain("cooking");
 	});
 
@@ -59,7 +58,7 @@ describe("teacher prompt", () => {
 					say: "Hi!",
 					corrections: [],
 					new_words: [],
-					learner_name: { name: "", say: "" },
+					learner_name: { name: "" },
 				},
 			},
 		];

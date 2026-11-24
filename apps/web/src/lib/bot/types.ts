@@ -33,18 +33,16 @@ export interface NewWord {
 	es: string;
 }
 
-/** Her name, and how an English voice should spell it to say it right. */
+/** Her name, as she spells it. */
 export interface LearnerName {
 	name: string;
-	/** Respelling for an English voice, e.g. "Hee-MEH-nah" for Ximena. */
-	say: string;
 }
 
 export interface TutorReply {
 	say: string;
 	corrections: Correction[];
 	new_words: NewWord[];
-	/** Set when she tells the teacher her name (or corrects how it's said); name "" otherwise. */
+	/** Set when she tells the teacher her name (or corrects its spelling); name "" otherwise. */
 	learner_name: LearnerName;
 }
 
