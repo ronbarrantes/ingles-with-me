@@ -67,7 +67,7 @@ function Bot() {
 	const [spent, setSpent] = useState(0);
 	const [learner, setLearnerState] = useState<LearnerName | null>(null);
 	const [hard, setHard] = useState<HardWord[]>([]);
-	const [showHard, setShowHard] = useState(false);
+	const [panel, setPanel] = useState<"none" | "menu" | "hard">("none");
 
 	// Refs so async callbacks always see the latest values.
 	const turnsRef = useRef<Turn[]>([]);
@@ -297,15 +297,20 @@ function Bot() {
 		void askAle({ text: `Quiero practicar "${word}".`, lang: "es" });
 	};
 
-	const changeTopic = (t: Topic) => {
+	// Start over: drop the transcript and any reply still on its way.
+	const newChat = () => {
 		pause();
 		convo.current += 1;
 		busy.current = false;
-		topicRef.current = t;
-		setTopic(t);
 		turnsRef.current = [];
 		setTurns([]);
 		setTiming({});
+	};
+
+	const changeTopic = (t: Topic) => {
+		newChat();
+		topicRef.current = t;
+		setTopic(t);
 	};
 
 	useEffect(
@@ -396,69 +401,110 @@ function Bot() {
 						{face.label}
 					</p>
 				</div>
-				<div className="ml-auto flex shrink-0 flex-col items-end gap-1.5">
-					{learner && (
-						<button
-							type="button"
-							onClick={() => rememberName(null)}
-							className="border-2 border-ink px-2 py-1 text-xs font-bold"
-							title="Ale olvidará tu nombre y te lo preguntará otra vez"
-						>
-							{learner.name} ✕
-						</button>
-					)}
-					{hard.length > 0 && (
-						<button
-							type="button"
-							onClick={() => setShowHard((v) => !v)}
-							aria-expanded={showHard}
-							className="border-2 border-ink px-2 py-1 text-xs font-bold"
-							aria-label={`Palabras difíciles: ${hard.length}`}
-						>
-							🎯 {hard.length}
-						</button>
-					)}
-				</div>
 			</div>
 
-			{showHard && hard.length > 0 && (
-				<HardWords
-					words={hard}
-					color={color}
-					onPractice={(w) => {
-						setShowHard(false);
-						practice(w);
-					}}
-					onClear={() => {
-						saveHard([]);
-						setShowHard(false);
-					}}
-				/>
-			)}
+			<div className="relative mt-4 flex min-h-0 flex-1 flex-col border-t-2 border-line">
+				<div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 pt-4 pb-20">
+					{turns.length === 0 && (
+						<p className="pt-6 text-center text-muted">
+							Habla en inglés o pregunta en español:
+							<br />
+							<i>«¿Cómo se dice mariposa?»</i>
+						</p>
+					)}
+					{turns.map((t, i) =>
+						t.role === "learner" ? (
+							// biome-ignore lint/suspicious/noArrayIndexKey: append-only transcript
+							<LearnerBubble key={i} attempt={t.attempt} />
+						) : (
+							// biome-ignore lint/suspicious/noArrayIndexKey: append-only transcript
+							<TutorBubble key={i} reply={t.reply} color={color} />
+						),
+					)}
+					{partial && (
+						<p className="ml-auto max-w-[85%] text-right text-muted italic">
+							{partial}…
+						</p>
+					)}
+					<div ref={end} />
+				</div>
 
-			<div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto border-t-2 border-line px-5 py-4">
-				{turns.length === 0 && (
-					<p className="pt-6 text-center text-muted">
-						Habla en inglés o pregunta en español:
-						<br />
-						<i>«¿Cómo se dice mariposa?»</i>
-					</p>
+				{panel !== "none" && (
+					<button
+						type="button"
+						aria-label="Cerrar menú"
+						className="absolute inset-0 bg-paper/60"
+						onClick={() => setPanel("none")}
+					/>
 				)}
-				{turns.map((t, i) =>
-					t.role === "learner" ? (
-						// biome-ignore lint/suspicious/noArrayIndexKey: append-only transcript
-						<LearnerBubble key={i} attempt={t.attempt} />
-					) : (
-						// biome-ignore lint/suspicious/noArrayIndexKey: append-only transcript
-						<TutorBubble key={i} reply={t.reply} color={color} />
-					),
+
+				{panel === "menu" && (
+					<div
+						role="menu"
+						className="absolute right-4 bottom-20 w-64 border-2 border-ink bg-card"
+					>
+						<MenuItem
+							onClick={() => setPanel("hard")}
+							label="🎯 Palabras difíciles"
+							count={hard.length}
+						/>
+						{learner && (
+							<MenuItem
+								onClick={() => {
+									rememberName(null);
+									setPanel("none");
+								}}
+								label={`👤 Olvidar «${learner.name}»`}
+								sub="Ale te pregunta tu nombre otra vez"
+							/>
+						)}
+						<MenuItem
+							onClick={() => {
+								newChat();
+								setPanel("none");
+							}}
+							label="🔄 Nueva conversación"
+						/>
+					</div>
 				)}
-				{partial && (
-					<p className="ml-auto max-w-[85%] text-right text-muted italic">
-						{partial}…
-					</p>
+
+				{panel === "hard" && (
+					<div className="absolute inset-x-0 bottom-0">
+						<HardWords
+							words={hard}
+							color={color}
+							onPractice={(w) => {
+								setPanel("none");
+								practice(w);
+							}}
+							onClear={() => {
+								saveHard([]);
+								setPanel("none");
+							}}
+							onClose={() => setPanel("none")}
+						/>
+					</div>
 				)}
-				<div ref={end} />
+
+				{panel !== "hard" && (
+					<button
+						type="button"
+						onClick={() => setPanel((p) => (p === "menu" ? "none" : "menu"))}
+						aria-label="Más opciones"
+						aria-expanded={panel === "menu"}
+						className="absolute right-4 bottom-4 grid h-12 w-12 place-items-center border-2 border-ink bg-card text-xl font-extrabold"
+					>
+						{panel === "menu" ? "✕" : "⋯"}
+						{hard.length > 0 && panel === "none" && (
+							<span
+								className="absolute -top-2 -right-2 grid h-5 min-w-5 place-items-center px-1 text-[11px] font-extrabold"
+								style={{ background: color, color: onColor(color) }}
+							>
+								{hard.length}
+							</span>
+						)}
+					</button>
+				)}
 			</div>
 
 			{(error || note) && (
@@ -559,27 +605,37 @@ function HardWords({
 	color,
 	onPractice,
 	onClear,
+	onClose,
 }: {
 	words: HardWord[];
 	color: string;
 	onPractice: (word: string) => void;
 	onClear: () => void;
+	onClose: () => void;
 }) {
 	return (
-		<div className="mx-5 mt-3 border-2 border-ink bg-card p-3">
-			<div className="flex items-baseline justify-between">
-				<p className="font-extrabold">Palabras difíciles</p>
+		<div className="border-t-2 border-ink bg-card p-4">
+			<div className="flex items-center justify-between">
+				<p className="text-lg font-extrabold">🎯 Palabras difíciles</p>
 				<button
 					type="button"
-					onClick={onClear}
-					className="text-xs text-muted underline underline-offset-2"
+					onClick={onClose}
+					className="-mr-2 grid h-9 w-9 place-items-center text-xl"
+					aria-label="Cerrar"
 				>
-					Borrar lista
+					✕
 				</button>
 			</div>
-			<p className="mt-0.5 text-xs text-muted">
-				Ale vuelve a ellas. Salen de la lista al decirlas bien dos veces.
-			</p>
+			{words.length === 0 && (
+				<p className="mt-1 text-sm text-muted">
+					Todavía ninguna. Cuando una palabra te cueste al hablar, aparece aquí.
+				</p>
+			)}
+			{words.length > 0 && (
+				<p className="mt-0.5 text-xs text-muted">
+					Ale vuelve a ellas. Salen de la lista al decirlas bien dos veces.
+				</p>
+			)}
 			<ul className="mt-2 max-h-48 space-y-1.5 overflow-y-auto">
 				{words.map((h) => (
 					<li key={h.word} className="flex items-center gap-2">
@@ -608,7 +664,47 @@ function HardWords({
 					</li>
 				))}
 			</ul>
+			{words.length > 0 && (
+				<button
+					type="button"
+					onClick={onClear}
+					className="mt-3 text-xs text-muted underline underline-offset-2"
+				>
+					Borrar lista
+				</button>
+			)}
 		</div>
+	);
+}
+
+function MenuItem({
+	label,
+	sub,
+	count,
+	onClick,
+}: {
+	label: string;
+	sub?: string;
+	count?: number;
+	onClick: () => void;
+}) {
+	return (
+		<button
+			type="button"
+			role="menuitem"
+			onClick={onClick}
+			className="flex w-full items-center justify-between gap-3 border-b-2 border-line px-3 py-3 text-left last:border-b-0"
+		>
+			<span className="min-w-0">
+				<span className="block font-bold">{label}</span>
+				{sub && <span className="block text-xs text-muted">{sub}</span>}
+			</span>
+			{count !== undefined && (
+				<span className="shrink-0 text-sm font-bold tabular-nums text-muted">
+					{count}
+				</span>
+			)}
+		</button>
 	);
 }
 
