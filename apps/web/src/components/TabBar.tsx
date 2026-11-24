@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { t } from "#/i18n";
-import { CardsIcon, ListIcon, RepeatIcon } from "./icons";
+import { CardsIcon, ChatIcon, ListIcon, RepeatIcon } from "./icons";
 
 const tabs = [
 	{
@@ -21,9 +21,15 @@ const tabs = [
 		Icon: RepeatIcon,
 		match: (p: string) => p.startsWith("/repasar"),
 	},
+	{
+		to: "/ale",
+		label: "Ale",
+		Icon: ChatIcon,
+		match: (p: string) => p.startsWith("/ale"),
+	},
 ] as const;
 
-/** Inside a deck it's just cards, so the bar hides there. */
+/** Inside a deck it's just cards, and the chat has its own controls, so the bar hides there. */
 export const isDeckPath = (p: string) =>
 	p.startsWith("/aprender/") ||
 	/^\/repasar\/[^/]+/.test(p) ||
@@ -33,7 +39,7 @@ export function TabBar() {
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	return (
 		<nav className="fixed inset-x-0 bottom-0 z-20 bg-paper pb-[env(safe-area-inset-bottom)] [border-top:var(--bar-width)_solid_var(--bar-line)]">
-			<ul className="mx-auto grid max-w-md grid-cols-3">
+			<ul className="mx-auto grid max-w-md grid-cols-4">
 				{tabs.map(({ to, label, Icon, match }) => {
 					const on = match(path);
 					return (
