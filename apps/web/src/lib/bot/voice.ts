@@ -4,21 +4,7 @@
 import { speak as phoneSpeak } from "#/lib/speech";
 import { fetchSpeech } from "./api";
 import { getLearner } from "./learner";
-
-const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-// English voices read "Ale" like the beer ("ail"), and mangle Spanish names:
-// swap in respellings they say right.
-function sayable(text: string) {
-	let out = text.replace(/\bAle\b/g, "Ah-leh");
-	const me = getLearner();
-	if (me?.say && me.say !== me.name)
-		out = out.replace(
-			new RegExp(`(?<!\\p{L})${escapeRe(me.name)}(?!\\p{L})`, "giu"),
-			me.say,
-		);
-	return out;
-}
+import { sayable } from "./sayable";
 
 // A short silent WAV, played on the first tap so iPhones allow audio later.
 function silentWav() {
@@ -62,7 +48,7 @@ export class Voice {
 	}
 
 	async speak(line: string) {
-		const text = sayable(line);
+		const text = sayable(line, getLearner());
 		if (this.useServer) {
 			try {
 				return await this.playServer(text);
