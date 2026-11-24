@@ -65,21 +65,45 @@ test("Ale learns her name, keeps it after reload, and can forget it", async ({
 	await unlockAle(page);
 	await page.getByPlaceholder("…o escribe aquí").fill("My name is Ximena");
 	await page.getByRole("button", { name: "Enviar" }).click();
-	const chip = page.getByRole("button", { name: /Ximena ✕/ });
-	await expect(chip).toBeVisible();
+	const menu = page.getByRole("button", { name: "Más opciones" });
+	const forget = page.getByRole("menuitem", { name: /Olvidar «Ximena»/ });
+	await expect(page.getByText("Nice to meet you, Ximena!")).toBeVisible();
 	await page.reload();
-	await expect(chip).toBeVisible();
-	await chip.click();
-	await expect(chip).toHaveCount(0);
+	await menu.click();
+	await expect(forget).toBeVisible();
+	await forget.click();
+	await menu.click();
+	await expect(forget).toHaveCount(0);
 });
 
-test("changing topic starts a fresh conversation", async ({ page }) => {
+test("topic suggestions: pick one, Ale gets its words, chips go away", async ({
+	page,
+}) => {
 	await unlockAle(page);
-	await page.getByPlaceholder("…o escribe aquí").fill("hello");
-	await page.getByRole("button", { name: "Enviar" }).click();
-	await expect(page.getByText("hello").first()).toBeVisible();
-	await page.getByRole("button", { name: /Cocina/ }).click();
-	await expect(page.getByText("¿Cómo se dice mariposa?")).toBeVisible();
+	await expect(page.getByText("¿De qué hablamos?")).toBeVisible();
+	await expect(
+		page.getByRole("button", { name: /De lo que quieras/ }),
+	).toBeVisible();
+	// No sideways-scrolling topic row anymore.
+	await expect(page.getByRole("button", { name: /Cocina|Jardín/ })).toHaveCount(
+		0,
+	);
+	const sent = page.waitForRequest("**/api/bot/reply");
+	const first = page
+		.getByText("¿De qué hablamos?")
+		.locator("..")
+		.getByRole("button")
+		.first();
+	await first.click();
+	const body = (await sent).postDataJSON();
+	expect(body.topic).not.toBe("libre");
+	expect(body.focus.length).toBeGreaterThan(0);
+	await expect(page.getByText("¿De qué hablamos?")).toHaveCount(0);
+	await page.getByRole("button", { name: /Pausar/ }).click();
+	// The picked topic is remembered and comes first next time.
+	await page.getByRole("button", { name: "Más opciones" }).click();
+	await page.getByRole("menuitem", { name: /Nueva conversación/ }).click();
+	await expect(page.getByText("¿De qué hablamos?")).toBeVisible();
 });
 
 test("hands-free: Ale opens the conversation, then pause stops it", async ({
@@ -178,7 +202,10 @@ test("hard words: Ale gets them, and the list can practice one", async ({
 	});
 	await unlockAle(page);
 	const sent = page.waitForRequest("**/api/bot/reply");
-	await page.getByRole("button", { name: "Palabras difíciles: 2" }).click();
+	const menu = page.getByRole("button", { name: "Más opciones" });
+	await expect(menu).toContainText("2"); // badge
+	await menu.click();
+	await page.getByRole("menuitem", { name: /Palabras difíciles/ }).click();
 	await expect(page.getByText("la th sonó como t")).toBeVisible();
 	await page.getByRole("button", { name: "Practicar" }).first().click();
 	const body = (await sent).postDataJSON();
@@ -188,4 +215,14 @@ test("hard words: Ale gets them, and the list can practice one", async ({
 	]);
 	expect(body.latest.text).toBe('Quiero practicar "three".');
 	await expect(page.getByText('Quiero practicar "three".')).toBeVisible();
+});
+
+test("menu: new conversation clears the chat", async ({ page }) => {
+	await unlockAle(page);
+	await page.getByPlaceholder("…o escribe aquí").fill("hello");
+	await page.getByRole("button", { name: "Enviar" }).click();
+	await expect(page.getByText("hello").first()).toBeVisible();
+	await page.getByRole("button", { name: "Más opciones" }).click();
+	await page.getByRole("menuitem", { name: /Nueva conversación/ }).click();
+	await expect(page.getByText("¿De qué hablamos?")).toBeVisible();
 });

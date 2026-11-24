@@ -1,6 +1,8 @@
 // Shapes shared by the /ale page and its server endpoints.
 
-export type Topic = "libre" | "cocina" | "jardin" | "casa";
+export type { Topic } from "./topics";
+
+import type { Topic } from "./topics";
 
 /** One word as the speech engine heard it, with its pronunciation score. */
 export interface WordScore {
@@ -26,6 +28,8 @@ export interface Attempt {
 export interface TeacherContext {
 	learner: LearnerName | null;
 	hard: HardWord[];
+	/** Words from the topic to build the chat around (still being learned). */
+	focus: string[];
 }
 
 /** A word she has trouble pronouncing, remembered across conversations. */
@@ -80,6 +84,8 @@ export interface ReplyRequest {
 	learner: LearnerName | null;
 	/** Words she struggles with, hardest first (a few). */
 	hard: HardWord[];
+	/** Words from the chosen topic to weave in. */
+	focus: string[];
 }
 
 export interface Meta {

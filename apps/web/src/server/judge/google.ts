@@ -1,4 +1,4 @@
-// The judge on Gemini (Vertex AI): hears her recording, writes down what she
+// The judge on Gemini (Vertex AI): hears the learner's recording, writes down what they
 // said (English or Spanish) and scores English pronunciation word by word.
 
 import { ThinkingLevel } from "@google/genai";
@@ -23,12 +23,12 @@ const JudgeSchema = z.object({
 
 const INSTRUCTIONS = `You assess the spoken English of an adult whose first language is Latin American Spanish. The recording is one short turn in a practice conversation.
 
-1. Transcribe exactly what she said, in the language she spoke. Do not correct her grammar or words.
-2. lang = "es" if she spoke mostly Spanish, otherwise "en".
-3. If lang is "en", score every word she said for pronunciation against standard American English, 0 to 100:
+1. Transcribe exactly what they said, in the language they spoke. Do not correct their grammar or words.
+2. lang = "es" if they spoke mostly Spanish, otherwise "en".
+3. If lang is "en", score every word they said for pronunciation against standard American English, 0 to 100:
    90-100 clear and natural; 75-89 a light accent but clearly the right word; 60-74 understandable with a noticeable wrong sound; under 60 hard to understand, or it sounds like a different word.
-   An accent alone is not an error. Use error "Mispronunciation" for words under 75, "Omission" for a word she clearly skipped, "Insertion" for an extra word, otherwise "None".
-   note: for words under 75, a few words IN SPANISH on what sounded off (for example "la th sonó como t", "i corta en vez de ii larga"), else "". She reads these notes.
+   An accent alone is not an error. Use error "Mispronunciation" for words under 75, "Omission" for a word they clearly skipped, "Insertion" for an extra word, otherwise "None".
+   note: for words under 75, a few words IN SPANISH on what sounded off (for example "la th sonó como t", "i corta en vez de ii larga"), else "". The learner reads these notes.
    accuracy = overall pronunciation 0-100; fluency = smoothness and pace 0-100.
 4. If lang is "es", return an empty words list and accuracy and fluency of 0.
 Be consistent: the same recording should get the same scores.`;

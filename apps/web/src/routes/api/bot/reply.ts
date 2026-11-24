@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { isChatTopic, type Topic } from "#/lib/bot/topics";
 import type { ReplyResponse } from "#/lib/bot/types";
 import { checkPasscode } from "#/server/guard";
 import { teacherLabel, teacherReady, tutorReply } from "#/server/tutor";
@@ -34,7 +35,7 @@ const TutorReplySchema = z.object({
 	learner_name: LearnerSchema.default({ name: "" }),
 });
 const RequestSchema = z.object({
-	topic: z.enum(["libre", "cocina", "jardin", "casa"]),
+	topic: z.string().max(30).refine(isChatTopic),
 	history: z
 		.array(
 			z.discriminatedUnion("role", [
@@ -59,6 +60,7 @@ const RequestSchema = z.object({
 		)
 		.max(12)
 		.default([]),
+	focus: z.array(z.string().max(40)).max(15).default([]),
 });
 
 export const Route = createFileRoute("/api/bot/reply")({
@@ -81,10 +83,14 @@ export const Route = createFileRoute("/api/bot/reply")({
 				);
 				if (!parsed.success)
 					return Response.json({ error: "bad_request" }, { status: 400 });
-				const { topic, history, latest, learner, hard } = parsed.data;
+				const { topic, history, latest, learner, hard, focus } = parsed.data;
 				const started = Date.now();
 				try {
-					const r = await tutorReply(topic, history, latest, { learner, hard });
+					const r = await tutorReply(topic as Topic, history, latest, {
+						learner,
+						hard,
+						focus,
+					});
 					const body: ReplyResponse = {
 						reply: r.reply,
 						meta: {
