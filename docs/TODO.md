@@ -28,6 +28,16 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] PostHog read-only key (via the secure form) so Claude can pull stats.
 - [ ] A small dashboard: turns per day, time per step, errors, cost per turn.
 
+## Value stack (make it a no-brainer for non-native speakers)
+- [ ] **Appointment prep**: "Tengo cita con el doctor mañana, practica conmigo." Ale role-plays the real situation ahead of time (doctor, boss, the kids' teacher, landlord, phone calls).
+- [ ] **Before and after**: save a short recording from day 1, then play it next to day 30.
+- [ ] **First win in 2 minutes**: their name in English and a green score, in Spanish, no pressure.
+- [ ] **Visible progress**: A1 → A2, hard words beaten, minutes talked.
+- [ ] **5-minute daily goal**, hands-free, no schedule.
+- [ ] **Guarantee**: 5 minutes a day for 30 days, more confident or your money back.
+- [ ] **Price anchor**: a tutor is $25–40/hour; Ale is 24/7 for $12–15/month and remembers your hard words.
+- [ ] **Bonuses**: real-voice word cards, a phrase kit for each situation.
+
 ## Stage 2: accounts and data
 - [ ] Convex: create the project and add `CONVEX_DEPLOY_KEY`, `CONVEX_URL`, `CONVEX_APP_SECRET` in Vercel (Production). The code is ready on a local branch (`convex-wip`).
 - [ ] WorkOS sign-in (2FA); link the device profile to the account.
