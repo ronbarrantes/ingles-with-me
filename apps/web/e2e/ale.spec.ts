@@ -236,14 +236,19 @@ test("a judge failure is a soft note, not an error", async ({ page }) => {
 	// The fake mic's turn can run up to the 20s cap, slower on CI machines.
 	test.setTimeout(90_000);
 	await unlockAle(page);
-	await page.route("**/api/bot/hear", (route) =>
-		route.fulfill({
+	await page.route("**/api/bot/hear", async (route) => {
+		await new Promise((r) => setTimeout(r, 1500));
+		await route.fulfill({
 			status: 502,
 			contentType: "application/json",
 			body: JSON.stringify({ error: "judge_error", message: "SyntaxError" }),
-		}),
-	);
+		});
+	});
 	await page.getByRole("button", { name: /Hablar/ }).click();
+	// The moment they stop: their bubble shows up (dots) while it's checked.
+	await expect(
+		page.getByRole("status", { name: "Revisando lo que dijiste" }),
+	).toBeVisible({ timeout: 60_000 });
 	await expect(
 		page.getByText("No pude revisar tu pronunciación esta vez."),
 	).toBeVisible({ timeout: 60_000 });

@@ -90,12 +90,51 @@ export class Voice {
 		return this.audio;
 	}
 
+	// Short "Mm-hm" / "A ver…" clips, fetched once and played the moment the
+	// learner stops talking, so the wait feels like Ale thinking.
+	private clips = new Map<string, Blob>();
+	private fillerDone: Promise<void> = Promise.resolve();
+
+	/** Fetch the filler clips in the background (server voice only). */
+	prefetch(lines: string[]) {
+		if (!this.useServer) return;
+		for (const line of lines)
+			if (!this.clips.has(line))
+				fetchSpeech(line)
+					.then((b) => this.clips.set(line, b))
+					.catch(() => {});
+	}
+
+	/** Play a filler right away, without waiting for it to end. */
+	filler(line: string) {
+		setAudioSession("playback");
+		const clip = this.clips.get(line);
+		if (clip) {
+			const url = URL.createObjectURL(clip);
+			const audio = this.player();
+			this.fillerDone = new Promise<void>((done) => {
+				const end = () => {
+					URL.revokeObjectURL(url);
+					done();
+				};
+				audio.onended = end;
+				audio.onerror = end;
+				audio.src = url;
+				audio.play().catch(end);
+				setTimeout(end, 2500); // never hold up Ale's reply for long
+			});
+		} else if (!this.useServer && typeof window !== "undefined") {
+			speakParts(splitLang(line), 1);
+		}
+	}
+
 	/** How long the last server voice took to arrive, in ms (0 = phone voice). */
 	lastFetchMs = 0;
 
 	/** Speak a line; `onStart` fires when sound starts (for timing). */
 	async speak(text: string, onStart?: () => void) {
 		this.lastFetchMs = 0;
+		await this.fillerDone; // let a "Mm-hm" finish first (it's short)
 		// Loud speaker while Ale talks (the mic is released meanwhile).
 		setAudioSession("playback");
 		if (this.useServer) {

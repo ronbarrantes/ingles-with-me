@@ -3,6 +3,9 @@
 What's next, roughly in order. Small items ship together in batches.
 
 ## Next batch
+- [ ] **Feedback**: 👍/👎 on Ale's replies (saved with model, level, topic) and a "Comentarios" item in the ⋯ menu (type or speak).
+- [ ] Tag PostHog events with `app: "ingles"` (so the project can be shared).
+- [ ] `docs/PRICING.md`: cost per turn and hour, price on value, tiers, the tutor comparison, free beta with founding members.
 - [x] **English level (1–4), Spanish first**: start beginners mostly in Spanish and shift to English as they progress. The level is estimated from words learned, English vs Spanish turns, scores and number of chats. It goes up after several good English turns and drops right away if they struggle. First-ever chat: greet in Spanish and teach "My name is…" first. "Más español / Más inglés" override in the ⋯ menu. Saved on the phone (with hard words and interests), synced to Convex later.
 - [ ] **Mis palabras**: save the words Ale teaches in chat (the "+ word · palabra" chips) and turn them into flashcards in Palabras and Repasar. Ale's prompt gets "words learned with me".
 - [ ] **Ya las dominas**: a list of hard words beaten, plus review checks about 3 days and 2 weeks later (back on the hard list if they slip).
@@ -52,6 +55,7 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] Stripe: 7-day trial with no card, Apple Pay and Google Pay. Plan around $12–15/month.
 
 ## Later / ideas
+- [ ] **"Learn my voice"**: a personal voice filter so the mic follows the learner and ignores the room (heavy, likely native-app territory). Try first: iPhone Control Center → Mic Mode → Voice Isolation while the mic is in use.
 - [ ] **Levels mapped to CEFR, adapted for adults**: level 1 ≈ Pre-A1/A1, 2 ≈ A1–A2, 3 ≈ A2–B1, 4 ≈ B1+. Ale aims for each level's "can-do" goals, in real adult situations: grocery store, pharmacy, doctor visits, work and job interviews, kids' school, landlord and bills, phone calls, small talk. Practice as role-plays ("Pretend I'm the pharmacist…"). Show progress as "A1 → A2".
 - [ ] **Practice games for higher levels** (in this order):
   1. *Name it*: show a picture or emoji (like the cards); they say the word, and the judge scores it.
