@@ -28,16 +28,32 @@ export class Mic {
 	private speechMs = 0;
 	private noise = 0.005;
 
-	/** Ask for the mic. Call from a tap (browsers require it). */
-	async open() {
-		if (this.ctx) return;
-		this.stream = await navigator.mediaDevices.getUserMedia({
+	private source?: MediaStreamAudioSourceNode;
+
+	private getStream() {
+		return navigator.mediaDevices.getUserMedia({
 			audio: {
 				echoCancellation: true,
 				noiseSuppression: true,
 				autoGainControl: true,
 			},
 		});
+	}
+
+	/**
+	 * Ask for the mic. Call from a tap the first time (browsers require it).
+	 * After release(), calling it again takes the mic back, keeping the same
+	 * audio engine (iPhones won't start a new one without a tap).
+	 */
+	async open() {
+		if (this.ctx && this.stream) return;
+		if (this.ctx && this.node) {
+			this.stream = await this.getStream();
+			this.source = this.ctx.createMediaStreamSource(this.stream);
+			this.source.connect(this.node);
+			return;
+		}
+		this.stream = await this.getStream();
 		const Ctx =
 			window.AudioContext ??
 			(window as unknown as { webkitAudioContext: typeof AudioContext })
@@ -48,6 +64,7 @@ export class Mic {
 		node.onaudioprocess = (e) =>
 			this.process(e.inputBuffer.getChannelData(0), ctx.sampleRate);
 		source.connect(node);
+		this.source = source;
 		node.connect(ctx.destination); // needed for processing to run; outputs silence
 		this.ctx = ctx;
 		this.node = node;
@@ -64,12 +81,27 @@ export class Mic {
 		this.reset();
 	}
 
+	/**
+	 * Let go of the mic but keep the audio engine. While a mic is open,
+	 * iPhones play sound in "phone call" mode, much quieter.
+	 */
+	release() {
+		this.pause();
+		this.source?.disconnect();
+		this.source = undefined;
+		for (const t of this.stream?.getTracks() ?? []) t.stop();
+		this.stream = undefined;
+	}
+
 	close() {
 		this.pause();
 		this.node?.disconnect();
 		for (const t of this.stream?.getTracks() ?? []) t.stop();
 		void this.ctx?.close();
 		this.ctx = undefined;
+		this.node = undefined;
+		this.stream = undefined;
+		this.source = undefined;
 	}
 
 	private reset() {
