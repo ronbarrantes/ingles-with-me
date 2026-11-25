@@ -40,6 +40,7 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] Stripe: 7-day trial with no card, Apple Pay and Google Pay. Plan around $12–15/month.
 
 ## Later / ideas
+- [ ] **Levels mapped to CEFR, adapted for adults**: level 1 ≈ Pre-A1/A1, 2 ≈ A1–A2, 3 ≈ A2–B1, 4 ≈ B1+. Ale aims for each level's "can-do" goals, in real adult situations: grocery store, pharmacy, doctor visits, work and job interviews, kids' school, landlord and bills, phone calls, small talk. Practice as role-plays ("Pretend I'm the pharmacist…"). Show progress as "A1 → A2".
 - [ ] **Practice games for higher levels** (in this order):
   1. *Name it*: show a picture or emoji (like the cards); they say the word, and the judge scores it.
   2. *Guess it*: Ale describes something ("an animal, a big cat, it has stripes…"); they answer "tiger".
