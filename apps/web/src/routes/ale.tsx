@@ -66,6 +66,13 @@ const FACE: Record<Mode, { emoji: string; label: string }> = {
 
 const TIP_KEY = "iwm:tip-headphones";
 
+// Said the instant they stop talking (clips cached on the phone): Spanish
+// for levels 1–2, English for 3–4.
+const FILLERS = {
+	es: ["«A ver…»", "«Mmm, muy bien.»", "«Okay, a ver.»"],
+	en: ["Mm-hm.", "Okay.", "Let me see."],
+};
+
 const scoreColor = (n: number) =>
 	n >= 75 ? "#3BB273" : n >= 60 ? "#F3A712" : "#E4572E";
 
@@ -77,6 +84,9 @@ function Bot() {
 	const [mode, setMode] = useState<Mode>("idle");
 	const [handsFree, setHandsFree] = useState(false);
 	const [voiceLevel, setVoiceLevel] = useState(0);
+	// Their turn is being checked: show their bubble right away, text comes next.
+	const [pending, setPending] = useState(false);
+	const lastFiller = useRef("");
 	const [tip, setTip] = useState<"first" | "noise" | null>(null);
 	const noiseTipShown = useRef(false);
 	const [typed, setTyped] = useState("");
@@ -216,6 +226,7 @@ function Bot() {
 			if (history.length === 0) lvl = { ...lvl, chats: lvl.chats + 1 };
 			saveLevelState(lvl);
 			if (latest) pushTurn({ role: "learner", attempt: latest });
+			setPending(false);
 			setMode("thinking");
 			const res = await fetchReply(
 				topicRef.current,
@@ -270,6 +281,7 @@ function Bot() {
 				});
 			});
 		} catch (e) {
+			setPending(false);
 			if (stale()) return;
 			// Don't leave her message hanging without a reply; typed text goes back in the box.
 			if (latest) {
@@ -318,6 +330,10 @@ function Bot() {
 			onTurn: async (wav) => {
 				const spokeAt = performance.now();
 				const caption = captions.current?.stop() ?? "";
+				// Right away: let go of the mic, say "Mm-hm", show their bubble.
+				mic.current?.release();
+				setPending(true);
+				sayFiller();
 				let attempt: Attempt | null = null;
 				if (statusRef.current?.judge.ready) {
 					setMode("hearing");
@@ -348,6 +364,7 @@ function Bot() {
 				// No judge (or it failed): use the live caption, without scores.
 				if (!attempt && caption) attempt = { text: caption, lang: "en" };
 				if (!attempt?.text.trim()) {
+					setPending(false);
 					setMode("idle");
 					if (handsFreeRef.current) void listen();
 					return;
@@ -355,6 +372,16 @@ function Bot() {
 				void askAle(attempt, spokeAt);
 			},
 		});
+	}
+
+	function sayFiller() {
+		const lvl = levelRef.current ? effective(levelRef.current) : 1;
+		const options = FILLERS[lvl <= 2 ? "es" : "en"].filter(
+			(f) => f !== lastFiller.current,
+		);
+		const line = options[Math.floor(Math.random() * options.length)];
+		lastFiller.current = line;
+		voice.current?.filler(line);
 	}
 
 	const start = async () => {
@@ -367,6 +394,7 @@ function Bot() {
 		}
 		voice.current ??= new Voice(Boolean(statusRef.current?.voice.ready));
 		voice.current.unlock();
+		voice.current.prefetch([...FILLERS.es, ...FILLERS.en]);
 		captions.current ??= new Captions();
 		try {
 			mic.current ??= new Mic();
@@ -402,6 +430,7 @@ function Bot() {
 	};
 
 	const pause = () => {
+		setPending(false);
 		handsFreeRef.current = false;
 		setHandsFree(false);
 		voice.current?.stop();
@@ -441,6 +470,7 @@ function Bot() {
 		busy.current = false;
 		turnsRef.current = [];
 		setTurns([]);
+		setPending(false);
 		setTiming({});
 		timingRef.current = {};
 		topicRef.current = "libre";
@@ -528,7 +558,7 @@ function Bot() {
 
 			<div className="mt-4 flex items-center gap-4 px-5">
 				<span
-					className={`grid h-16 w-16 shrink-0 place-items-center rounded-md border-2 border-ink text-3xl ${mode === "listening" ? "animate-pulse" : ""}`}
+					className={`motion-safe-anim grid h-16 w-16 shrink-0 place-items-center rounded-md border-2 border-ink text-3xl ${mode === "listening" ? "animate-pulse" : ""} ${mode === "thinking" || mode === "hearing" ? "animate-[nod_1.1s_ease-in-out_infinite]" : ""}`}
 					style={{ background: color }}
 					aria-hidden
 				>
@@ -544,7 +574,13 @@ function Bot() {
 						)}
 					</p>
 					<p className="truncate text-sm text-muted" aria-live="polite">
-						{face.label}
+						{face.label.replace(/…$/, "")}
+						{(mode === "thinking" || mode === "hearing") && <Dots />}
+						{mode !== "thinking" &&
+						mode !== "hearing" &&
+						face.label.endsWith("…")
+							? "…"
+							: ""}
 					</p>
 				</div>
 				<button
@@ -630,6 +666,7 @@ function Bot() {
 						),
 					)}
 					{mode === "listening" && <ListeningBubble level={voiceLevel} />}
+					{pending && <PendingBubble />}
 					<div ref={end} />
 				</div>
 
@@ -777,7 +814,7 @@ function Bot() {
 
 function LearnerBubble({ attempt }: { attempt: Attempt }) {
 	return (
-		<div className="ml-auto max-w-[85%] rounded-sm border-2 border-ink bg-card px-3 py-2">
+		<div className="motion-safe-anim ml-auto max-w-[85%] animate-[pop_0.25s_ease-out] rounded-sm border-2 border-ink bg-card px-3 py-2">
 			<p className="text-lg leading-snug">
 				{attempt.words?.length
 					? attempt.words.map((w, i) =>
@@ -886,6 +923,35 @@ function HardWords({
 				</button>
 			)}
 		</div>
+	);
+}
+
+/** Three dots that take turns lighting up. */
+function Dots() {
+	return (
+		<span className="ml-0.5 inline-flex gap-0.5" aria-hidden>
+			{[0, 1, 2].map((i) => (
+				<span
+					key={i}
+					className="motion-safe-anim inline-block animate-[dot_1.2s_ease-in-out_infinite]"
+					style={{ animationDelay: `${i * 0.15}s` }}
+				>
+					.
+				</span>
+			))}
+		</span>
+	);
+}
+
+/** Their turn while the judge checks it: the bubble is there, the words come next. */
+function PendingBubble() {
+	return (
+		<output
+			className="ml-auto flex h-12 w-24 animate-[pop_0.2s_ease-out] items-center justify-center rounded-sm border-2 border-ink bg-card text-2xl font-extrabold"
+			aria-label="Revisando lo que dijiste"
+		>
+			<Dots />
+		</output>
 	);
 }
 
