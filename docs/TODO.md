@@ -7,7 +7,11 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] **Mis palabras**: save the words Ale teaches in chat (the "+ word · palabra" chips) and turn them into flashcards in Palabras and Repasar. Ale's prompt gets "words learned with me".
 - [ ] **Ya las dominas**: a list of hard words beaten, plus review checks about 3 days and 2 weeks later (back on the hard list if they slip).
 - [x] **Listening bubble**: hide the phone's live caption (English-only, so Spanish shows up garbled) and show a bubble with bars that move with the learner's voice. Keep the caption hidden as the fallback text.
+- [ ] **Placement without a test**: in the very first chat, Ale starts in Spanish and asks 3–5 friendly questions that get harder in English (name → family → what you did today). From the answers and scores it sets the starting level, so learners who already know English aren't stuck in Spanish mode.
 - [ ] **Barge-in**: keep the mic on while Ale talks; if the learner starts speaking, Ale stops and that becomes their turn. Stricter trigger while Ale speaks (echo), and an "Interrumpir a Ale" switch in the ⋯ menu.
+
+## The 300 words
+- [ ] **Real voice for word cards**: generate each word and its example sentence once with Google TTS (Chirp) and save them as audio files (about $0.10 one time). Use them in cards, Palabras and Repasar; keep the phone's voice as the offline fallback. They can ship with the app, or live in Convex storage later.
 
 ## Speed and cost (check PostHog first)
 - [ ] Look at a day of `ale_turn` timings and the judge's thinking tokens ("pensó N").
