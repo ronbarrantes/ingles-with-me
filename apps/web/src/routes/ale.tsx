@@ -463,10 +463,27 @@ function Bot() {
 						{face.label}
 					</p>
 				</div>
+				<button
+					type="button"
+					onClick={() => setPanel((p) => (p === "none" ? "menu" : "none"))}
+					aria-label="Más opciones"
+					aria-expanded={panel !== "none"}
+					className="relative ml-auto grid h-12 w-12 shrink-0 place-items-center rounded-sm border-2 border-ink bg-card text-xl font-extrabold"
+				>
+					{panel === "none" ? "⋯" : "✕"}
+					{hard.length > 0 && panel === "none" && (
+						<span
+							className="absolute -top-2 -right-2 grid h-5 min-w-5 place-items-center px-1 text-[11px] font-extrabold"
+							style={{ background: color, color: onColor(color) }}
+						>
+							{hard.length}
+						</span>
+					)}
+				</button>
 			</div>
 
 			<div className="relative mt-4 flex min-h-0 flex-1 flex-col border-t-2 border-line">
-				<div className="ph-no-capture min-h-0 flex-1 space-y-3 overflow-y-auto px-5 pt-4 pb-20">
+				<div className="ph-no-capture min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
 					{turns.length === 0 && (
 						<div className="pt-2">
 							<p className="text-2xl font-extrabold">¿De qué hablamos?</p>
@@ -518,7 +535,7 @@ function Bot() {
 				{panel === "menu" && (
 					<div
 						role="menu"
-						className="absolute right-4 bottom-20 w-64 overflow-hidden rounded-md border-2 border-ink bg-card"
+						className="absolute top-2 right-4 w-64 overflow-hidden rounded-md border-2 border-ink bg-card"
 					>
 						<MenuItem
 							onClick={() => setPanel("hard")}
@@ -572,26 +589,6 @@ function Bot() {
 							onClose={() => setPanel("none")}
 						/>
 					</div>
-				)}
-
-				{panel !== "hard" && (
-					<button
-						type="button"
-						onClick={() => setPanel((p) => (p === "menu" ? "none" : "menu"))}
-						aria-label="Más opciones"
-						aria-expanded={panel === "menu"}
-						className="absolute right-4 bottom-4 grid h-12 w-12 place-items-center rounded-sm border-2 border-ink bg-card text-xl font-extrabold"
-					>
-						{panel === "menu" ? "✕" : "⋯"}
-						{hard.length > 0 && panel === "none" && (
-							<span
-								className="absolute -top-2 -right-2 grid h-5 min-w-5 place-items-center px-1 text-[11px] font-extrabold"
-								style={{ background: color, color: onColor(color) }}
-							>
-								{hard.length}
-							</span>
-						)}
-					</button>
 				)}
 			</div>
 
