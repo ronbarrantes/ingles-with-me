@@ -4,6 +4,7 @@
 import { plain, splitLang } from "#/lib/bot/segments";
 import { label, mocked, voiceEs, voiceSpec } from "../config";
 import { googleReady } from "../google";
+import { reportError } from "../telemetry";
 import { speakLine as geminiSpeakLine } from "./gemini";
 import { speak as googleSpeak } from "./google";
 
@@ -42,7 +43,7 @@ export async function voiceSpeak(text: string): Promise<Speech> {
 			return { audio: await geminiSpeakLine(model, text), type: "audio/mpeg" };
 		} catch (e) {
 			// A wrong model name or an outage shouldn't silence Ale: use Chirp.
-			console.warn("gemini voice failed; using chirp", e);
+			void reportError(e, { stage: "voice-gemini", model: configured });
 			model = CHIRP_FALLBACK;
 		}
 	}

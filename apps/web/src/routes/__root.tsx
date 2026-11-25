@@ -8,6 +8,7 @@ import {
 import { useEffect } from "react";
 import { isDeckPath, TabBar } from "#/components/TabBar";
 import { t } from "#/i18n";
+import { startAnalytics } from "#/lib/analytics";
 import { warmUpSpeech } from "#/lib/speech";
 import { THEME_SCRIPT } from "#/lib/theme";
 import appCss from "../styles.css?url";
@@ -103,6 +104,8 @@ function RootLayout() {
 		window.addEventListener("pointerdown", warmUpSpeech, { once: true });
 		return () => window.removeEventListener("pointerdown", warmUpSpeech);
 	}, []);
+
+	useEffect(() => startAnalytics(), []);
 
 	useEffect(() => {
 		if (import.meta.env.PROD && "serviceWorker" in navigator) {

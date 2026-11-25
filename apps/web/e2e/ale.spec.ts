@@ -231,6 +231,8 @@ test("menu: new conversation clears the chat", async ({ page }) => {
 });
 
 test("a judge failure is a soft note, not an error", async ({ page }) => {
+	// The fake mic's turn can run up to the 20s cap, slower on CI machines.
+	test.setTimeout(90_000);
 	await unlockAle(page);
 	await page.route("**/api/bot/hear", (route) =>
 		route.fulfill({
@@ -242,6 +244,6 @@ test("a judge failure is a soft note, not an error", async ({ page }) => {
 	await page.getByRole("button", { name: /Hablar/ }).click();
 	await expect(
 		page.getByText("No pude revisar tu pronunciación esta vez."),
-	).toBeVisible({ timeout: 30_000 });
+	).toBeVisible({ timeout: 60_000 });
 	await expect(page.getByText(/SyntaxError/)).toHaveCount(0);
 });

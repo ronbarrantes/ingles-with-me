@@ -5,6 +5,7 @@ import { ThinkingLevel } from "@google/genai";
 import { z } from "zod";
 import type { Attempt } from "#/lib/bot/types";
 import { gemini, geminiSchema } from "../google";
+import { reportError } from "../telemetry";
 
 const JudgeSchema = z.object({
 	text: z.string(),
@@ -57,7 +58,7 @@ export async function hear(model: string, wavBase64: string): Promise<Heard> {
 			return callOnce(model, wavBase64);
 		}
 		if (e instanceof EmptyAnswer) {
-			console.warn(`judge: ${e.message}; retrying once`);
+			void reportError(e, { stage: "judge-empty", model });
 			return callOnce(model, wavBase64);
 		}
 		throw e;

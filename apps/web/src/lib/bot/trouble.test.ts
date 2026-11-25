@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clean, recordScores } from "./trouble";
+import { clean, mergeHard, recordScores } from "./trouble";
 import type { WordScore } from "./types";
 
 const ws = (word: string, accuracy: number, note = ""): WordScore => ({
@@ -85,5 +85,13 @@ describe("hard words", () => {
 	it("normalizes punctuation and case, keeps apostrophes", () => {
 		expect(clean("Don’t!")).toBe("don't");
 		expect(clean("¿Mariposa?")).toBe("mariposa");
+	});
+
+	it("merges phone and server lists, newest entry per word", () => {
+		const a = recordScores([], [ws("three", 50)], 1).list;
+		const b = recordScores([], [ws("three", 70), ws("ship", 60)], 2).list;
+		const merged = mergeHard(a, b);
+		expect(merged.find((h) => h.word === "three")?.last).toBe(70);
+		expect(merged.map((h) => h.word).sort()).toEqual(["ship", "three"]);
 	});
 });

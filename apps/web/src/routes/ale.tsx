@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { onColor } from "#/components/Art";
+import { track } from "#/lib/analytics";
 import {
 	BotError,
 	checkSavedPasscode,
@@ -19,6 +20,7 @@ import {
 	getInterests,
 	type Interests,
 	notePicked,
+	saveInterestsLocal,
 	suggestTopics,
 } from "#/lib/bot/topics";
 import { getHardWords, recordScores, setHardWords } from "#/lib/bot/trouble";
@@ -65,7 +67,12 @@ function Bot() {
 	const [typed, setTyped] = useState("");
 	const [error, setError] = useState("");
 	const [note, setNote] = useState("");
-	const [timing, setTiming] = useState<{ judge?: Meta; teacher?: Meta }>({});
+	const [timing, setTiming] = useState<{
+		judge?: Meta;
+		teacher?: Meta;
+		voiceMs?: number;
+	}>({});
+	const timingRef = useRef<{ judge?: Meta }>({});
 	const [spent, setSpent] = useState(0);
 	const [learner, setLearnerState] = useState<LearnerName | null>(null);
 	const [hard, setHard] = useState<HardWord[]>([]);
@@ -104,6 +111,18 @@ function Bot() {
 		hardRef.current = list;
 		setHard(list);
 		setHardWords(list);
+	};
+
+	const saveInterests = (i: Interests) => {
+		setInterests(i);
+		saveInterestsLocal(i);
+	};
+
+	// "Borrar lo que Ale sabe de mí": name, hard words and topics on this phone.
+	const forgetMe = () => {
+		rememberName(null);
+		saveHard([]);
+		saveInterests({ counts: {} });
 	};
 
 	// The judge scored a turn: remember hard words, celebrate mastered ones.
@@ -154,9 +173,10 @@ function Bot() {
 	const addCost = (m: Meta) => setSpent((s) => s + (m.costUsd ?? 0));
 
 	// Ask Ale for the next line (latest = null opens the conversation), then say it.
-	async function askAle(latest: Attempt | null) {
+	async function askAle(latest: Attempt | null, spokeAt?: number) {
 		if (busy.current) return;
 		busy.current = true;
+		const sentAt = performance.now();
 		setError("");
 		const mine = convo.current;
 		const stale = () => mine !== convo.current;
@@ -192,7 +212,23 @@ function Bot() {
 			setTiming((t) => ({ ...t, teacher: res.meta }));
 			addCost(res.meta);
 			setMode("speaking");
-			await voice.current?.speak(res.reply.say);
+			const judgeMeta = timingRef.current.judge;
+			await voice.current?.speak(res.reply.say, () => {
+				const voiceMs = voice.current?.lastFetchMs ?? 0;
+				setTiming((t) => ({ ...t, voiceMs }));
+				track("ale_turn", {
+					topic: topicRef.current,
+					typed: spokeAt === undefined,
+					judge_ms: spokeAt !== undefined ? judgeMeta?.ms : undefined,
+					judge_thoughts:
+						spokeAt !== undefined ? judgeMeta?.thoughtTokens : undefined,
+					teacher_ms: res.meta.ms,
+					teacher_model: res.meta.model,
+					voice_ms: voiceMs,
+					// From the end of her speech (or the send tap) to Ale's first sound.
+					total_ms: Math.round(performance.now() - (spokeAt ?? sentAt)),
+				});
+			});
 		} catch (e) {
 			if (stale()) return;
 			// Don't leave her message hanging without a reply; typed text goes back in the box.
@@ -220,6 +256,7 @@ function Bot() {
 		captions.current?.start(setPartial);
 		mic.current.listen({
 			onTurn: async (wav) => {
+				const spokeAt = performance.now();
 				const caption = captions.current?.stop() ?? "";
 				setPartial("");
 				let attempt: Attempt | null = null;
@@ -229,6 +266,7 @@ function Bot() {
 						const res = await fetchHear(wav, caption);
 						attempt = res.attempt;
 						noteScores(attempt);
+						timingRef.current = { ...timingRef.current, judge: res.meta };
 						setTiming((t) => ({ ...t, judge: res.meta }));
 						addCost(res.meta);
 					} catch (e) {
@@ -251,7 +289,7 @@ function Bot() {
 					if (handsFreeRef.current) listen();
 					return;
 				}
-				void askAle(attempt);
+				void askAle(attempt, spokeAt);
 			},
 		});
 	}
@@ -336,13 +374,15 @@ function Bot() {
 		turnsRef.current = [];
 		setTurns([]);
 		setTiming({});
+		timingRef.current = {};
 		topicRef.current = "libre";
 		setTopic("libre");
 	};
 
 	// A suggestion was tapped: remember the interest and start talking about it.
 	const pickTopic = (t: Topic) => {
-		setInterests((i) => notePicked(i, t));
+		saveInterests(notePicked(interests, t));
+		track("ale_topic", { topic: t });
 		topicRef.current = t;
 		setTopic(t);
 		void start();
@@ -420,7 +460,7 @@ function Bot() {
 			</div>
 
 			<div className="relative mt-4 flex min-h-0 flex-1 flex-col border-t-2 border-line">
-				<div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 pt-4 pb-20">
+				<div className="ph-no-capture min-h-0 flex-1 space-y-3 overflow-y-auto px-5 pt-4 pb-20">
 					{turns.length === 0 && (
 						<div className="pt-2">
 							<p className="text-2xl font-extrabold">¿De qué hablamos?</p>
@@ -496,6 +536,17 @@ function Bot() {
 							}}
 							label="🔄 Nueva conversación"
 						/>
+						<MenuItem
+							onClick={() => {
+								forgetMe();
+								setPanel("none");
+								setNote(
+									"Listo: Ale olvidó tu nombre, tus palabras difíciles y tus temas.",
+								);
+							}}
+							label="🗑️ Borrar lo que Ale sabe de mí"
+							sub="Nombre, palabras difíciles y temas"
+						/>
 					</div>
 				)}
 
@@ -562,7 +613,7 @@ function Bot() {
 					{handsFree ? "⏸ Pausar" : "🎙 Hablar"}
 				</button>
 				<form
-					className="mt-2 flex gap-2"
+					className="ph-no-capture mt-2 flex gap-2"
 					onSubmit={(e) => {
 						e.preventDefault();
 						sendTyped();
@@ -593,6 +644,9 @@ function Bot() {
 						{timing.judge &&
 							`juez ${timing.judge.model} ${fmt(timing.judge)}${timing.judge.thoughtTokens ? ` (pensó ${timing.judge.thoughtTokens})` : ""} · `}
 						maestro {timing.teacher?.model} {fmt(timing.teacher)}
+						{timing.voiceMs
+							? ` · voz ${(timing.voiceMs / 1000).toFixed(1)}s`
+							: ""}
 						{timing.teacher?.costUsd != null &&
 							` · $${timing.teacher.costUsd.toFixed(4)}`}
 					</p>

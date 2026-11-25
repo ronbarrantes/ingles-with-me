@@ -67,6 +67,16 @@ export function recordScores(
 export const rank = (list: HardWord[]) =>
 	[...list].sort((a, b) => b.misses - a.misses || b.at - a.at);
 
+/** Combine two lists (phone and server): newest entry per word wins. */
+export function mergeHard(a: HardWord[], b: HardWord[]): HardWord[] {
+	const byWord = new Map<string, HardWord>();
+	for (const h of [...a, ...b]) {
+		const prev = byWord.get(h.word);
+		if (!prev || h.at > prev.at) byWord.set(h.word, h);
+	}
+	return rank([...byWord.values()]).slice(0, MAX_KEPT);
+}
+
 export function getHardWords(): HardWord[] {
 	try {
 		const v = JSON.parse(localStorage.getItem(KEY) ?? "[]");
