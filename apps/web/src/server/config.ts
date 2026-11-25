@@ -2,7 +2,8 @@
 // variable in the form "provider:model", so swapping is a settings change:
 //   TEACHER=anthropic:claude-sonnet-5-5   (or google:gemini-4-hydrogen …)
 //   JUDGE=google:gemini-4-hydrogen         (hears her and scores pronunciation)
-//   VOICE=google:en-US-Chirp3-HD-Aoede     (speaks Ale's replies)
+//   VOICE=gemini:gemini-2.5-flash-tts/Aoede (speaks Ale's replies; one
+//         multilingual voice. Or google:en-US-Chirp3-HD-Aoede for Chirp.)
 // BOT_MOCK=1 answers every role with canned data (testing without keys).
 
 export interface Spec {
@@ -20,11 +21,14 @@ export const teacherSpec = () =>
 export const judgeSpec = () =>
 	spec(process.env.JUDGE, "google:gemini-4-hydrogen");
 export const voiceSpec = () =>
-	spec(process.env.VOICE, "google:en-US-Chirp3-HD-Aoede");
+	spec(process.env.VOICE, "gemini:gemini-2.5-flash-tts/Aoede");
 /** Voice for Spanish words inside a line; defaults to the same voice in es-US. */
 export const voiceEs = () =>
 	process.env.VOICE_ES?.split(":").slice(1).join(":") ||
-	voiceSpec().model.replace(/^[a-z]{2}-[A-Z]{2}/, "es-US");
+	(voiceSpec().provider === "google"
+		? voiceSpec().model
+		: "en-US-Chirp3-HD-Aoede"
+	).replace(/^[a-z]{2}-[A-Z]{2}/, "es-US");
 export const mocked = () => process.env.BOT_MOCK === "1";
 
 export const label = (s: Spec) => `${s.provider}:${s.model}`;

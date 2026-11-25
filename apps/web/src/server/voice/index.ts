@@ -4,13 +4,17 @@
 import { plain, splitLang } from "#/lib/bot/segments";
 import { label, mocked, voiceEs, voiceSpec } from "../config";
 import { googleReady } from "../google";
+import { speakLine as geminiSpeakLine } from "./gemini";
 import { speak as googleSpeak } from "./google";
+
+const CHIRP_FALLBACK = "en-US-Chirp3-HD-Aoede";
 
 const providers: Record<
 	string,
-	{ ready: () => boolean; speak: typeof googleSpeak }
+	{ ready: () => boolean; speak?: typeof googleSpeak }
 > = {
 	google: { ready: googleReady, speak: googleSpeak },
+	gemini: { ready: googleReady },
 };
 
 export const voiceLabel = () => label(voiceSpec());
@@ -24,26 +28,36 @@ export interface Speech {
 }
 
 /**
- * Speak one line. Spanish parts marked «like this» get a Spanish voice (the
+ * Speak one line. With VOICE=gemini:… one multilingual voice says it all
+ * (falling back to Chirp if that fails). With Chirp, Spanish parts marked «like this» get a Spanish voice (the
  * same voice in es-US), so «jugo» has a Spanish j. Mixed lines are made as
  * WAV pieces and joined into one WAV (joined MP3s can stop early on iPhone).
  * If the Spanish voice fails, that piece uses the English one.
  */
 export async function voiceSpeak(text: string): Promise<Speech> {
-	const { provider, model } = voiceSpec();
-	const p = providers[provider];
-	if (!p) throw new Error(`unknown voice provider "${provider}"`);
+	const { provider, model: configured } = voiceSpec();
+	let model = configured;
+	if (provider === "gemini") {
+		try {
+			return { audio: await geminiSpeakLine(model, text), type: "audio/mpeg" };
+		} catch (e) {
+			// A wrong model name or an outage shouldn't silence Ale: use Chirp.
+			console.warn("gemini voice failed; using chirp", e);
+			model = CHIRP_FALLBACK;
+		}
+	}
+	const speak = providers[provider]?.speak ?? googleSpeak;
 	const parts = splitLang(text);
 	if (parts.length <= 1 && parts[0]?.lang !== "es")
-		return { audio: await p.speak(model, plain(text)), type: "audio/mpeg" };
+		return { audio: await speak(model, plain(text)), type: "audio/mpeg" };
 	const wavs = await Promise.all(
 		parts.map((part) =>
 			part.lang === "es"
-				? p.speak(voiceEs(), part.text, "LINEAR16").catch((e) => {
+				? speak(voiceEs(), part.text, "LINEAR16").catch((e) => {
 						console.warn("spanish voice failed; using english", e);
-						return p.speak(model, part.text, "LINEAR16");
+						return speak(model, part.text, "LINEAR16");
 					})
-				: p.speak(model, part.text, "LINEAR16"),
+				: speak(model, part.text, "LINEAR16"),
 		),
 	);
 	return { audio: joinWavs(wavs), type: "audio/wav" };
