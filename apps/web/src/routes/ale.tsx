@@ -5,13 +5,10 @@ import { track } from "#/lib/analytics";
 import {
 	BotError,
 	checkSavedPasscode,
-	deleteProfile,
 	fetchHear,
-	fetchProfile,
 	fetchReply,
 	fetchStatus,
 	getPasscode,
-	pushProfile,
 	setPasscode,
 } from "#/lib/bot/api";
 import { Captions, captionsAvailable } from "#/lib/bot/captions";
@@ -26,12 +23,7 @@ import {
 	saveInterestsLocal,
 	suggestTopics,
 } from "#/lib/bot/topics";
-import {
-	getHardWords,
-	mergeHard,
-	recordScores,
-	setHardWords,
-} from "#/lib/bot/trouble";
+import { getHardWords, recordScores, setHardWords } from "#/lib/bot/trouble";
 import type {
 	Attempt,
 	BotStatus,
@@ -109,33 +101,28 @@ function Bot() {
 	const current = chip(topic, hard.length);
 	const color = current.color;
 
-	// Changes are kept on the phone and, when a database is set up, saved there too.
-	const rememberName = (l: LearnerName | null, sync = true) => {
+	const rememberName = (l: LearnerName | null) => {
 		learnerRef.current = l?.name ? l : null;
 		setLearnerState(learnerRef.current);
 		setLearner(learnerRef.current);
-		if (sync) pushProfile({ learner: learnerRef.current });
 	};
 
-	const saveHard = (list: HardWord[], sync = true) => {
+	const saveHard = (list: HardWord[]) => {
 		hardRef.current = list;
 		setHard(list);
 		setHardWords(list);
-		if (sync) pushProfile({ hard: list });
 	};
 
-	const saveInterests = (i: Interests, sync = true) => {
+	const saveInterests = (i: Interests) => {
 		setInterests(i);
 		saveInterestsLocal(i);
-		if (sync) pushProfile({ interests: i });
 	};
 
-	// "Borrar lo que Ale sabe de mí": name, hard words and topics, here and on the server.
+	// "Borrar lo que Ale sabe de mí": name, hard words and topics on this phone.
 	const forgetMe = () => {
-		rememberName(null, false);
-		saveHard([], false);
-		saveInterests({ counts: {} }, false);
-		void deleteProfile();
+		rememberName(null);
+		saveHard([]);
+		saveInterests({ counts: {} });
 	};
 
 	// The judge scored a turn: remember hard words, celebrate mastered ones.
@@ -160,33 +147,6 @@ function Bot() {
 			})
 			.catch(() => setError("No pude conectar con el servidor."));
 	}, []);
-
-	// Once unlocked: bring in what the server remembers (e.g. after reinstalling),
-	// or upload what this phone knows if the server has nothing yet.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: run once per unlock
-	useEffect(() => {
-		if (locked) return;
-		fetchProfile()
-			.then((p) => {
-				if (!p) {
-					pushProfile({
-						learner: learnerRef.current,
-						hard: hardRef.current,
-						interests: getInterests(),
-					});
-					return;
-				}
-				if (p.learner?.name) rememberName(p.learner, false);
-				else if (learnerRef.current)
-					pushProfile({ learner: learnerRef.current });
-				const merged = mergeHard(hardRef.current, p.hard ?? []);
-				saveHard(merged, false);
-				if (merged.length !== (p.hard ?? []).length)
-					pushProfile({ hard: merged });
-				if (p.interests?.counts) saveInterests(p.interests, false);
-			})
-			.catch(() => {});
-	}, [locked]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: scroll on new content
 	useEffect(() => {
