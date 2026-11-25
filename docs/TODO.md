@@ -3,6 +3,7 @@
 What's next, roughly in order. Small items ship together in batches.
 
 ## Next batch
+- [ ] **English level (1–4), Spanish first**: start beginners mostly in Spanish and shift to English as they progress. The level is estimated from words learned, English vs Spanish turns, scores and number of chats. It goes up after several good English turns and drops right away if they struggle. First-ever chat: greet in Spanish and teach "My name is…" first. "Más español / Más inglés" override in the ⋯ menu. Saved on the phone (with hard words and interests), synced to Convex later.
 - [ ] **Mis palabras**: save the words Ale teaches in chat (the "+ word · palabra" chips) and turn them into flashcards in Palabras and Repasar. Ale's prompt gets "words learned with me".
 - [ ] **Ya las dominas**: a list of hard words beaten, plus review checks about 3 days and 2 weeks later (back on the hard list if they slip).
 - [ ] **Listening bubble**: hide the phone's live caption (English-only, so Spanish shows up garbled) and show a bubble with bars that move with the learner's voice. Keep the caption hidden as the fallback text.
