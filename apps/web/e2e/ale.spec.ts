@@ -249,3 +249,46 @@ test("a judge failure is a soft note, not an error", async ({ page }) => {
 	).toBeVisible({ timeout: 60_000 });
 	await expect(page.getByText(/SyntaxError/)).toHaveCount(0);
 });
+
+test("English level: a beginner's first chat starts in Spanish, menu can change it", async ({
+	page,
+}) => {
+	await unlockAle(page);
+	const firstReq = page.waitForRequest("**/api/bot/reply");
+	await page.getByPlaceholder("…o escribe aquí").fill("hola");
+	await page.getByRole("button", { name: "Enviar" }).click();
+	expect((await firstReq).postDataJSON().level).toEqual({
+		value: 1,
+		first: true,
+	});
+	await expect(page.getByText("hola").first()).toBeVisible();
+
+	// The menu shows the level and can ask for more English.
+	await page.getByRole("button", { name: "Más opciones" }).click();
+	await expect(page.getByText("Mayormente español")).toBeVisible();
+	await page.getByRole("button", { name: "Más inglés" }).click();
+	await expect(page.getByText("Mitad y mitad")).toBeVisible();
+	await expect(page.getByText("(elegido)")).toBeVisible();
+	await page.getByRole("menuitem", { name: /Nueva conversación/ }).click();
+
+	// A later chat isn't the first one, and uses the chosen level.
+	const nextReq = page.waitForRequest("**/api/bot/reply");
+	await page.getByPlaceholder("…o escribe aquí").fill("hello");
+	await page.getByRole("button", { name: "Enviar" }).click();
+	expect((await nextReq).postDataJSON().level).toEqual({
+		value: 2,
+		first: false,
+	});
+});
+
+test("listening shows a bubble with bars, not the live English caption", async ({
+	page,
+}) => {
+	await unlockAle(page);
+	await page.getByRole("button", { name: /Hablar/ }).click();
+	await expect(page.getByRole("status", { name: "Te escucho" })).toBeVisible({
+		timeout: 20_000,
+	});
+	await page.getByRole("button", { name: /Pausar/ }).click();
+	await expect(page.getByRole("status", { name: "Te escucho" })).toHaveCount(0);
+});

@@ -7,6 +7,13 @@ import { t } from "#/i18n";
 import type { ChatCategory, Topic } from "#/lib/bot/topics";
 import type { Attempt, TeacherContext, Turn } from "#/lib/bot/types";
 
+const LEVEL_HINT = {
+	1: "mostly Spanish",
+	2: "half and half",
+	3: "mostly English",
+	4: "English",
+} as const;
+
 // English hints so the model knows what each topic is about.
 const CATEGORY_HINT: Record<ChatCategory, string> = {
 	comida: "food, cooking and meals",
@@ -42,6 +49,15 @@ How you talk
 - End most turns with something for them to say: usually a real question about their life, sometimes a word or short sentence to repeat. Don't ask them to repeat something every turn.
 - Be supportive and honest. Never call an attempt perfect when the scores show a real problem, and never invent mistakes.
 
+English level
+The session note gives their English level, 1 to 4. It decides how much English you use:
+- 1, mostly Spanish: talk mainly in short, warm, simple Spanish. Use English only for the word or short phrase you are practicing, in quotes, with its meaning: «Perro en inglés es» "dog". «¿Puedes decir» "dog"? Celebrate small wins.
+- 2, half and half: short, simple English sentences, each followed by brief Spanish help when it's needed.
+- 3, mostly English: simple English; Spanish only for a tricky explanation or when they seem lost.
+- 4, English: English only, unless they ask for Spanish or are clearly lost.
+Set pace every turn: "more_english" when they understood and answered comfortably in English; "more_spanish" when they seem lost (they say they don't understand, answer in Spanish to an English question, or score very low); otherwise "same". If they ask you to use more Spanish or more English, do it right away and set pace to match.
+If the session note says this is their first conversation ever: greet them in Spanish, say in one sentence who you are («Soy Ale, practico inglés contigo»), ask their name in Spanish, and make "My name is …" their first English sentence.
+
 Their name
 - If you don't know their name yet, ask it early in the conversation (after your greeting).
 - Only if the name is unusual or the transcript looks unsure (it came from speech and could be spelled several ways), confirm the spelling once, briefly ("Is that Yesenia with a Y?"). For common names, just use it. Never ask how to pronounce it, and don't make a lesson of it.
@@ -74,6 +90,7 @@ Output
 - corrections: up to 2 items about words they said this turn. word = the correct English word; heard = what they seemed to say, or ""; tip = a short tip in Spanish with the respelling. Empty when there is nothing to fix.
 - new_words: English words you taught this turn that are not in their known list and that you have not listed earlier in this conversation, with the Spanish meaning (a real translation, not the same word). Empty if none.
 - learner_name: see "Their name". name is "" unless they told you their name or corrected its spelling this turn.
+- pace: see "English level".
 
 Their known words (with how they sound to a Spanish reader)
 ${KNOWN}`;
@@ -92,14 +109,17 @@ function topicLine(topic: Topic, focus: string[]) {
 /** Per-request context: the topic and what you already know about the learner. */
 export function sessionNote(
 	topic: Topic,
-	{ learner, hard, focus }: TeacherContext,
+	{ learner, hard, focus, level }: TeacherContext,
 ) {
 	const lines = [
 		topicLine(topic, focus),
 		learner?.name
 			? `Their name is ${learner.name}. You already know it from an earlier conversation: don't ask again.`
 			: "You don't know their name yet.",
+		`English level: ${level.value} of 4 (${LEVEL_HINT[level.value]}).`,
 	];
+	if (level.first)
+		lines.push("This is their first conversation ever (see English level).");
 	if (hard.length) {
 		const list = hard
 			.map(

@@ -13,6 +13,17 @@ import {
 } from "#/lib/bot/api";
 import { Captions, captionsAvailable } from "#/lib/bot/captions";
 import { getLearner, setLearner } from "#/lib/bot/learner";
+import {
+	afterTurn,
+	automatic,
+	effective,
+	freshLevel,
+	getLevel,
+	LEVEL_NAME,
+	type LevelState,
+	nudge,
+	saveLevel,
+} from "#/lib/bot/level";
 import { Mic } from "#/lib/bot/mic";
 import {
 	chip,
@@ -63,7 +74,7 @@ function Bot() {
 	const [turns, setTurns] = useState<Turn[]>([]);
 	const [mode, setMode] = useState<Mode>("idle");
 	const [handsFree, setHandsFree] = useState(false);
-	const [partial, setPartial] = useState("");
+	const [voiceLevel, setVoiceLevel] = useState(0);
 	const [typed, setTyped] = useState("");
 	const [error, setError] = useState("");
 	const [note, setNote] = useState("");
@@ -86,6 +97,8 @@ function Bot() {
 	const turnsRef = useRef<Turn[]>([]);
 	const learnerRef = useRef<LearnerName | null>(null);
 	const hardRef = useRef<HardWord[]>([]);
+	const levelRef = useRef<LevelState | null>(null);
+	const [levelState, setLevelState] = useState<LevelState | null>(null);
 	const handsFreeRef = useRef(false);
 	const topicRef = useRef<Topic>("libre");
 	const statusRef = useRef<BotStatus | null>(null);
@@ -107,6 +120,12 @@ function Bot() {
 		setLearner(learnerRef.current);
 	};
 
+	const saveLevelState = (l: LevelState) => {
+		levelRef.current = l;
+		setLevelState(l);
+		saveLevel(l);
+	};
+
 	const saveHard = (list: HardWord[]) => {
 		hardRef.current = list;
 		setHard(list);
@@ -123,6 +142,7 @@ function Bot() {
 		rememberName(null);
 		saveHard([]);
 		saveInterests({ counts: {} });
+		saveLevelState(freshLevel(wordsRef.current));
 	};
 
 	// The judge scored a turn: remember hard words, celebrate mastered ones.
@@ -139,6 +159,8 @@ function Bot() {
 		hardRef.current = getHardWords();
 		setHard(hardRef.current);
 		setInterests(getInterests());
+		levelRef.current = getLevel(wordsRef.current);
+		setLevelState(levelRef.current);
 		fetchStatus()
 			.then((s) => {
 				setStatus(s);
@@ -151,7 +173,7 @@ function Bot() {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: scroll on new content
 	useEffect(() => {
 		end.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-	}, [turns.length, partial, mode]);
+	}, [turns.length, mode]);
 
 	const pushTurn = (t: Turn) => {
 		turnsRef.current = [...turnsRef.current, t];
@@ -184,6 +206,11 @@ function Bot() {
 		const stale = () => mine !== convo.current;
 		try {
 			const history = turnsRef.current;
+			// A new conversation: count it (the very first one starts in Spanish).
+			let lvl = levelRef.current ?? getLevel(wordsRef.current);
+			const first = lvl.chats === 0;
+			if (history.length === 0) lvl = { ...lvl, chats: lvl.chats + 1 };
+			saveLevelState(lvl);
 			if (latest) pushTurn({ role: "learner", attempt: latest });
 			setMode("thinking");
 			const res = await fetchReply(
@@ -195,8 +222,11 @@ function Bot() {
 				topicRef.current === "libre" || topicRef.current === "hard"
 					? []
 					: focusWords(wordsRef.current, topicRef.current),
+				{ value: effective(lvl), first: first && history.length === 0 },
 			);
 			if (stale()) return;
+			// Adjust the English level from this turn and the teacher's read of it.
+			if (latest) saveLevelState(afterTurn(lvl, latest, res.reply.pace));
 			// Don't repeat new-word chips already shown in this chat.
 			const shown = new Set(
 				turnsRef.current.flatMap((t) =>
@@ -229,6 +259,7 @@ function Bot() {
 						spokeAt !== undefined ? judgeMeta?.thoughtTokens : undefined,
 					teacher_ms: res.meta.ms,
 					teacher_model: res.meta.model,
+					level: levelRef.current ? effective(levelRef.current) : undefined,
 					voice_ms: voiceMs,
 					// From the end of her speech (or the send tap) to Ale's first sound.
 					total_ms: Math.round(performance.now() - (spokeAt ?? sentAt)),
@@ -267,13 +298,15 @@ function Bot() {
 		}
 		if (!handsFreeRef.current) return;
 		setMode("listening");
-		setPartial("");
-		captions.current?.start(setPartial);
+		setVoiceLevel(0);
+		// The phone's live caption only hears English (Spanish comes out garbled),
+		// so it isn't shown; it's kept as the fallback text if the judge fails.
+		captions.current?.start(() => {});
 		mic.current.listen({
+			onLevel: setVoiceLevel,
 			onTurn: async (wav) => {
 				const spokeAt = performance.now();
 				const caption = captions.current?.stop() ?? "";
-				setPartial("");
 				let attempt: Attempt | null = null;
 				if (statusRef.current?.judge.ready) {
 					setMode("hearing");
@@ -357,7 +390,6 @@ function Bot() {
 		voice.current?.stop();
 		mic.current?.pause();
 		captions.current?.stop();
-		setPartial("");
 		setMode("idle");
 		void wakeLock.current?.release();
 		wakeLock.current = null;
@@ -528,11 +560,7 @@ function Bot() {
 							<TutorBubble key={i} reply={t.reply} color={color} />
 						),
 					)}
-					{partial && (
-						<p className="ml-auto max-w-[85%] text-right text-muted italic">
-							{partial}…
-						</p>
-					)}
+					{mode === "listening" && <ListeningBubble level={voiceLevel} />}
 					<div ref={end} />
 				</div>
 
@@ -572,6 +600,12 @@ function Bot() {
 							}}
 							label="🔄 Nueva conversación"
 						/>
+						{levelState && (
+							<LevelRow
+								state={levelState}
+								onChange={(l) => saveLevelState(l)}
+							/>
+						)}
 						<MenuItem
 							onClick={() => {
 								forgetMe();
@@ -581,7 +615,7 @@ function Bot() {
 								);
 							}}
 							label="🗑️ Borrar lo que Ale sabe de mí"
-							sub="Nombre, palabras difíciles y temas"
+							sub="Nombre, palabras difíciles, temas y nivel"
 						/>
 					</div>
 				)}
@@ -780,6 +814,74 @@ function HardWords({
 					className="mt-3 text-xs text-muted underline underline-offset-2"
 				>
 					Borrar lista
+				</button>
+			)}
+		</div>
+	);
+}
+
+/** While listening: a bubble on their side with bars that move with their voice. */
+function ListeningBubble({ level }: { level: number }) {
+	const shape = [0.45, 0.75, 1, 0.75, 0.45];
+	return (
+		<output
+			className="ml-auto flex h-12 w-24 items-center justify-center gap-1.5 rounded-sm border-2 border-ink bg-card"
+			aria-label="Te escucho"
+		>
+			{shape.map((k, i) => (
+				<span
+					// biome-ignore lint/suspicious/noArrayIndexKey: fixed bars
+					key={i}
+					className="w-1.5 rounded-full bg-ink transition-[height] duration-100"
+					style={{ height: `${Math.round(6 + level * 26 * k)}px` }}
+				/>
+			))}
+		</output>
+	);
+}
+
+/** "Más español / Más inglés" in the menu, with the current level. */
+function LevelRow({
+	state,
+	onChange,
+}: {
+	state: LevelState;
+	onChange: (l: LevelState) => void;
+}) {
+	const lvl = effective(state);
+	return (
+		<div className="border-b-2 border-line px-3 py-3">
+			<p className="font-bold">
+				🎚️ {LEVEL_NAME[lvl]}{" "}
+				<span className="text-xs font-normal text-muted">
+					{state.manual ? "(elegido)" : "(automático)"}
+				</span>
+			</p>
+			<div className="mt-2 flex gap-2">
+				<button
+					type="button"
+					disabled={lvl === 1}
+					onClick={() => onChange(nudge(state, -1))}
+					className="h-9 flex-1 rounded-sm border-2 border-ink text-sm font-bold disabled:opacity-40"
+				>
+					Más español
+				</button>
+				<button
+					type="button"
+					disabled={lvl === 4}
+					onClick={() => onChange(nudge(state, 1))}
+					className="h-9 flex-1 rounded-sm border-2 border-ink text-sm font-bold disabled:opacity-40"
+				>
+					Más inglés
+				</button>
+			</div>
+			{state.manual && (
+				<button
+					type="button"
+					onClick={() => onChange(automatic(state))}
+					className="mt-2 text-xs text-muted underline underline-offset-2"
+				>
+					Volver a automático
 				</button>
 			)}
 		</div>
