@@ -165,6 +165,8 @@ function Bot() {
 			setPasscode("");
 			setLocked(true);
 			setError("Código incorrecto.");
+		} else if (e instanceof BotError && e.code === "timeout") {
+			setError("Ale tardó demasiado en responder. Intenta otra vez.");
 		} else if (e instanceof BotError && e.code === "not_configured") {
 			setError(`Falta configurar: ${e.missing.join(", ")}`);
 		} else setError(e instanceof Error ? e.message : String(e));
@@ -278,7 +280,11 @@ function Bot() {
 							handleError(e);
 						else {
 							console.warn("judge failed", e);
-							setNote("No pude revisar tu pronunciación esta vez.");
+							setNote(
+								e instanceof BotError && e.code === "timeout"
+									? "La revisión tardó mucho; seguimos sin puntaje esta vez."
+									: "No pude revisar tu pronunciación esta vez.",
+							);
 						}
 					}
 				}
