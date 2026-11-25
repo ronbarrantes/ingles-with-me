@@ -40,6 +40,11 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] Stripe: 7-day trial with no card, Apple Pay and Google Pay. Plan around $12–15/month.
 
 ## Later / ideas
+- [ ] **Practice games for higher levels** (in this order):
+  1. *Name it*: show a picture or emoji (like the cards); they say the word, and the judge scores it.
+  2. *Guess it*: Ale describes something ("an animal, a big cat, it has stripes…"); they answer "tiger".
+  3. *Story questions* (still unsure): a very short story built from words they know, then questions ("How many brothers were there?").
+- [ ] **Tongue twisters from your hard words**, e.g. "Aaron, earn an iron urn" (earn and urn sound the same; iron is "eye-urn").
 - [ ] **Pronunciation polish for fluent speakers**: "Agregar palabra" to add any word to the hard-words list (iron, February, crocodile, Kubernetes); a level-4 pronunciation mode where Ale works that list with sound ladders, word pairs that differ by one sound, and real sentences; work vocabulary topics (software interview, standup meeting). A second audience: people who already speak English.
 - [ ] Compare mode: Sonnet and Haiku replies side by side (A/B).
 - [ ] Phrases and grammar patterns tracked like hard words.
