@@ -45,6 +45,8 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] Privacy: encrypt sensitive fields, short retention for transcripts, no stored audio, opt-in "help improve Ale".
 - [ ] Daily goal, streak and gentle reminders.
 - [ ] Per-user daily turn limits (free minutes).
+- [ ] **Age range in the profile** (13–17 · 18–34 · 35–59 · 60+, not an exact age) to adjust Ale's tone: teens casual, adults peer-to-peer, 60+ patient and slower with bigger text. Also voice speed and text size settings.
+- [ ] **Minors and family plans**: start adults only (18+). Never under 13 (COPPA). Teens later, with privacy-first defaults (California rules for minors). The paying adult manages family members. Check with a lawyer before allowing anyone under 18.
 
 ## Stage 3: payments
 - [ ] Stripe: 7-day trial with no card, Apple Pay and Google Pay. Plan around $12–15/month.
