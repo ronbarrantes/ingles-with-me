@@ -3,6 +3,7 @@ import { z } from "zod";
 import { isChatTopic, type Topic } from "#/lib/bot/topics";
 import type { ReplyResponse } from "#/lib/bot/types";
 import { checkPasscode } from "#/server/guard";
+import { reportError } from "#/server/telemetry";
 import { teacherLabel, teacherReady, tutorReply } from "#/server/tutor";
 
 // Bounded input: no huge histories or texts reach the model.
@@ -104,7 +105,7 @@ export const Route = createFileRoute("/api/bot/reply")({
 					};
 					return Response.json(body);
 				} catch (e) {
-					console.error("teacher error", e);
+					await reportError(e, { stage: "teacher", model: teacherLabel() });
 					return Response.json(
 						{ error: "teacher_error", message: String(e) },
 						{ status: 502 },

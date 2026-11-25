@@ -123,4 +123,6 @@ export interface BotStatus {
 	voice: RoleStatus;
 	passcode: boolean;
 	mock: boolean;
+	/** A database is set up: what Ale remembers is saved on the server too. */
+	db: boolean;
 }

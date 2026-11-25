@@ -46,14 +46,20 @@ export class Voice {
 		void this.audio.play().catch(() => {});
 	}
 
-	async speak(text: string) {
+	/** How long the last server voice took to arrive, in ms (0 = phone voice). */
+	lastFetchMs = 0;
+
+	/** Speak a line; `onStart` fires when sound starts (for timing). */
+	async speak(text: string, onStart?: () => void) {
+		this.lastFetchMs = 0;
 		if (this.useServer) {
 			try {
-				return await this.playServer(text);
+				return await this.playServer(text, onStart);
 			} catch {
 				// Fall through to the phone voice.
 			}
 		}
+		onStart?.();
 		await this.playPhone(text);
 	}
 
@@ -63,8 +69,10 @@ export class Voice {
 		this.stopped?.();
 	}
 
-	private async playServer(text: string) {
+	private async playServer(text: string, onStart?: () => void) {
+		const asked = performance.now();
 		const blob = await fetchSpeech(text);
+		this.lastFetchMs = Math.round(performance.now() - asked);
 		const url = URL.createObjectURL(blob);
 		this.audio ??= new Audio();
 		const audio = this.audio;
@@ -74,7 +82,10 @@ export class Voice {
 				audio.onended = () => done();
 				audio.onerror = () => fail(new Error("audio playback failed"));
 				audio.src = url;
-				audio.play().catch(fail);
+				audio
+					.play()
+					.then(() => onStart?.())
+					.catch(fail);
 			});
 		} finally {
 			this.stopped = undefined;

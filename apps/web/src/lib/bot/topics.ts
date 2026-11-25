@@ -161,15 +161,16 @@ export function getInterests(): Interests {
 	}
 }
 
-export function notePicked(i: Interests, id: Topic): Interests {
-	const next = {
-		counts: { ...i.counts, [id]: (i.counts[id] ?? 0) + 1 },
-		last: id,
-	};
+/** The interests after picking a topic (save them with saveInterestsLocal). */
+export const notePicked = (i: Interests, id: Topic): Interests => ({
+	counts: { ...i.counts, [id]: (i.counts[id] ?? 0) + 1 },
+	last: id,
+});
+
+export function saveInterestsLocal(i: Interests) {
 	try {
-		localStorage.setItem(KEY, JSON.stringify(next));
+		localStorage.setItem(KEY, JSON.stringify(i));
 	} catch {
 		// Private mode: suggestions just won't learn this time.
 	}
-	return next;
 }
