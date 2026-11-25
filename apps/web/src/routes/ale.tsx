@@ -213,6 +213,9 @@ function Bot() {
 			pushTurn({ role: "tutor", reply: res.reply });
 			setTiming((t) => ({ ...t, teacher: res.meta }));
 			addCost(res.meta);
+			// Let go of the mic while Ale talks: with a mic open, iPhones play
+			// sound in "phone call" mode, very quietly. It reopens to listen.
+			mic.current?.release();
 			setMode("speaking");
 			const judgeMeta = timingRef.current.judge;
 			await voice.current?.speak(res.reply.say, () => {
@@ -245,14 +248,24 @@ function Bot() {
 			if (!stale()) {
 				busy.current = false;
 				setMode("idle");
-				if (handsFreeRef.current) listen();
+				if (handsFreeRef.current) void listen();
 			}
 		}
 	}
 
 	// One spoken turn: record until she stops, have the judge hear it, then ask Ale.
-	function listen() {
+	async function listen() {
 		if (!mic.current || !handsFreeRef.current) return;
+		try {
+			await mic.current.open(); // no-op if it's already open
+		} catch {
+			pause();
+			setError(
+				"No pude usar el micrófono. Revisa el permiso, o escribe abajo.",
+			);
+			return;
+		}
+		if (!handsFreeRef.current) return;
 		setMode("listening");
 		setPartial("");
 		captions.current?.start(setPartial);
@@ -292,7 +305,7 @@ function Bot() {
 				if (!attempt && caption) attempt = { text: caption, lang: "en" };
 				if (!attempt?.text.trim()) {
 					setMode("idle");
-					if (handsFreeRef.current) listen();
+					if (handsFreeRef.current) void listen();
 					return;
 				}
 				void askAle(attempt, spokeAt);
@@ -335,7 +348,7 @@ function Bot() {
 			// The screen may dim; the conversation still works.
 		}
 		if (turnsRef.current.length === 0) await askAle(null);
-		else listen();
+		else void listen();
 	};
 
 	const pause = () => {

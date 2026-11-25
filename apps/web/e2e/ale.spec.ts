@@ -118,6 +118,8 @@ test("hands-free: Ale opens the conversation, then pause stops it", async ({
 		timeout: 15_000,
 	});
 	await expect(page.getByRole("button", { name: /Pausar/ })).toBeVisible();
+	// After Ale speaks (with the mic released), it takes the mic back and listens.
+	await expect(page.getByText("Te escucho…")).toBeVisible({ timeout: 20_000 });
 	await page.getByRole("button", { name: /Pausar/ }).click();
 	await expect(page.getByRole("button", { name: /Hablar/ })).toBeVisible();
 });
