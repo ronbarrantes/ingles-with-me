@@ -38,7 +38,16 @@ export interface Speech {
 export async function voiceSpeak(text: string): Promise<Speech> {
 	const { provider, model: configured } = voiceSpec();
 	let model = configured;
-	if (provider === "gemini") {
+	// The Gemini voice is slower (seconds), so it only speaks lines that mix in
+	// Spanish; English-only lines use fast Chirp. VOICE_GEMINI_ALWAYS=1 forces it.
+	const mixed = splitLang(text).some((p) => p.lang === "es");
+	if (
+		provider === "gemini" &&
+		!mixed &&
+		process.env.VOICE_GEMINI_ALWAYS !== "1"
+	)
+		model = CHIRP_FALLBACK;
+	else if (provider === "gemini") {
 		try {
 			return { audio: await geminiSpeakLine(model, text), type: "audio/mpeg" };
 		} catch (e) {
