@@ -7,7 +7,11 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] **Mis palabras**: save the words Ale teaches in chat (the "+ word · palabra" chips) and turn them into flashcards in Palabras and Repasar. Ale's prompt gets "words learned with me".
 - [ ] **Ya las dominas**: a list of hard words beaten, plus review checks about 3 days and 2 weeks later (back on the hard list if they slip).
 - [x] **Listening bubble**: hide the phone's live caption (English-only, so Spanish shows up garbled) and show a bubble with bars that move with the learner's voice. Keep the caption hidden as the fallback text.
+- [ ] **Placement without a test**: in the very first chat, Ale starts in Spanish and asks 3–5 friendly questions that get harder in English (name → family → what you did today). From the answers and scores it sets the starting level, so learners who already know English aren't stuck in Spanish mode.
 - [ ] **Barge-in**: keep the mic on while Ale talks; if the learner starts speaking, Ale stops and that becomes their turn. Stricter trigger while Ale speaks (echo), and an "Interrumpir a Ale" switch in the ⋯ menu.
+
+## The 300 words
+- [ ] **Real voice for word cards**: generate each word and its example sentence once with Google TTS (Chirp) and save them as audio files (about $0.10 one time). Use them in cards, Palabras and Repasar; keep the phone's voice as the offline fallback. They can ship with the app, or live in Convex storage later.
 
 ## Speed and cost (check PostHog first)
 - [ ] Look at a day of `ale_turn` timings and the judge's thinking tokens ("pensó N").
@@ -24,6 +28,16 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] PostHog read-only key (via the secure form) so Claude can pull stats.
 - [ ] A small dashboard: turns per day, time per step, errors, cost per turn.
 
+## Value stack (make it a no-brainer for non-native speakers)
+- [ ] **Appointment prep**: "Tengo cita con el doctor mañana, practica conmigo." Ale role-plays the real situation ahead of time (doctor, boss, the kids' teacher, landlord, phone calls).
+- [ ] **Before and after**: save a short recording from day 1, then play it next to day 30.
+- [ ] **First win in 2 minutes**: their name in English and a green score, in Spanish, no pressure.
+- [ ] **Visible progress**: A1 → A2, hard words beaten, minutes talked.
+- [ ] **5-minute daily goal**, hands-free, no schedule.
+- [ ] **Guarantee**: 5 minutes a day for 30 days, more confident or your money back.
+- [ ] **Price anchor**: a tutor is $25–40/hour; Ale is 24/7 for $12–15/month and remembers your hard words.
+- [ ] **Bonuses**: real-voice word cards, a phrase kit for each situation.
+
 ## Stage 2: accounts and data
 - [ ] Convex: create the project and add `CONVEX_DEPLOY_KEY`, `CONVEX_URL`, `CONVEX_APP_SECRET` in Vercel (Production). The code is ready on a local branch (`convex-wip`).
 - [ ] WorkOS sign-in (2FA); link the device profile to the account.
@@ -31,11 +45,20 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] Privacy: encrypt sensitive fields, short retention for transcripts, no stored audio, opt-in "help improve Ale".
 - [ ] Daily goal, streak and gentle reminders.
 - [ ] Per-user daily turn limits (free minutes).
+- [ ] **Age range in the profile** (13–17 · 18–34 · 35–59 · 60+, not an exact age) to adjust Ale's tone: teens casual, adults peer-to-peer, 60+ patient and slower with bigger text. Also voice speed and text size settings.
+- [ ] **Minors and family plans**: start adults only (18+). Never under 13 (COPPA). Teens later, with privacy-first defaults (California rules for minors). The paying adult manages family members. Check with a lawyer before allowing anyone under 18.
 
 ## Stage 3: payments
 - [ ] Stripe: 7-day trial with no card, Apple Pay and Google Pay. Plan around $12–15/month.
 
 ## Later / ideas
+- [ ] **Levels mapped to CEFR, adapted for adults**: level 1 ≈ Pre-A1/A1, 2 ≈ A1–A2, 3 ≈ A2–B1, 4 ≈ B1+. Ale aims for each level's "can-do" goals, in real adult situations: grocery store, pharmacy, doctor visits, work and job interviews, kids' school, landlord and bills, phone calls, small talk. Practice as role-plays ("Pretend I'm the pharmacist…"). Show progress as "A1 → A2".
+- [ ] **Practice games for higher levels** (in this order):
+  1. *Name it*: show a picture or emoji (like the cards); they say the word, and the judge scores it.
+  2. *Guess it*: Ale describes something ("an animal, a big cat, it has stripes…"); they answer "tiger".
+  3. *Story questions* (still unsure): a very short story built from words they know, then questions ("How many brothers were there?").
+- [ ] **Tongue twisters from your hard words**, e.g. "Aaron, earn an iron urn" (earn and urn sound the same; iron is "eye-urn").
+- [ ] **Pronunciation polish for fluent speakers**: "Agregar palabra" to add any word to the hard-words list (iron, February, crocodile, Kubernetes); a level-4 pronunciation mode where Ale works that list with sound ladders, word pairs that differ by one sound, and real sentences; work vocabulary topics (software interview, standup meeting). A second audience: people who already speak English.
 - [ ] Compare mode: Sonnet and Haiku replies side by side (A/B).
 - [ ] Phrases and grammar patterns tracked like hard words.
 - [ ] Realtime voice (e.g. Gemini Live) for sub-second replies.

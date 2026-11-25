@@ -3,6 +3,7 @@
 
 import { speakParts } from "#/lib/speech";
 import { fetchSpeech } from "./api";
+import { setAudioSession } from "./audioSession";
 import { splitLang } from "./segments";
 
 // A short silent WAV, played on the first tap so iPhones allow audio later.
@@ -39,11 +40,54 @@ export class Voice {
 		this.useServer = useServer;
 	}
 
+	// Ale's voice goes through a compressor and a gain stage when possible:
+	// louder without crackling, like radio. Needs an audio engine started by a tap.
+	private ctx?: AudioContext;
+	private boosted?: HTMLAudioElement;
+
 	/** Call from a tap, before the first speak(). */
 	unlock() {
 		this.audio ??= new Audio();
 		this.audio.src = silentWav();
 		void this.audio.play().catch(() => {});
+		try {
+			if (!this.ctx) {
+				const Ctx =
+					window.AudioContext ??
+					(window as unknown as { webkitAudioContext: typeof AudioContext })
+						.webkitAudioContext;
+				const ctx = new Ctx();
+				const el = new Audio();
+				const source = ctx.createMediaElementSource(el);
+				const comp = ctx.createDynamicsCompressor();
+				comp.threshold.value = -24;
+				comp.knee.value = 12;
+				comp.ratio.value = 6;
+				comp.attack.value = 0.003;
+				comp.release.value = 0.2;
+				const gain = ctx.createGain();
+				gain.gain.value = 2.2;
+				source.connect(comp).connect(gain).connect(ctx.destination);
+				this.ctx = ctx;
+				this.boosted = el;
+			}
+			// iPhones want each player started from a tap once.
+			if (this.boosted) {
+				this.boosted.src = silentWav();
+				void this.boosted.play().catch(() => {});
+			}
+			void this.ctx.resume();
+		} catch {
+			this.ctx = undefined;
+			this.boosted = undefined;
+		}
+	}
+
+	/** The element to play through: boosted if its engine is running. */
+	private player() {
+		if (this.boosted && this.ctx?.state === "running") return this.boosted;
+		this.audio ??= new Audio();
+		return this.audio;
 	}
 
 	/** How long the last server voice took to arrive, in ms (0 = phone voice). */
@@ -52,6 +96,8 @@ export class Voice {
 	/** Speak a line; `onStart` fires when sound starts (for timing). */
 	async speak(text: string, onStart?: () => void) {
 		this.lastFetchMs = 0;
+		// Loud speaker while Ale talks (the mic is released meanwhile).
+		setAudioSession("playback");
 		if (this.useServer) {
 			try {
 				return await this.playServer(text, onStart);
@@ -65,6 +111,7 @@ export class Voice {
 
 	stop() {
 		this.audio?.pause();
+		this.boosted?.pause();
 		if (typeof window !== "undefined") window.speechSynthesis?.cancel();
 		this.stopped?.();
 	}
@@ -74,8 +121,7 @@ export class Voice {
 		const blob = await fetchSpeech(text);
 		this.lastFetchMs = Math.round(performance.now() - asked);
 		const url = URL.createObjectURL(blob);
-		this.audio ??= new Audio();
-		const audio = this.audio;
+		const audio = this.player();
 		try {
 			await new Promise<void>((done, fail) => {
 				this.stopped = done;

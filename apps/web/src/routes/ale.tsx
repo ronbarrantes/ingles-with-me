@@ -64,6 +64,8 @@ const FACE: Record<Mode, { emoji: string; label: string }> = {
 	speaking: { emoji: "🗣️", label: "Ale está hablando" },
 };
 
+const TIP_KEY = "iwm:tip-headphones";
+
 const scoreColor = (n: number) =>
 	n >= 75 ? "#3BB273" : n >= 60 ? "#F3A712" : "#E4572E";
 
@@ -75,6 +77,8 @@ function Bot() {
 	const [mode, setMode] = useState<Mode>("idle");
 	const [handsFree, setHandsFree] = useState(false);
 	const [voiceLevel, setVoiceLevel] = useState(0);
+	const [tip, setTip] = useState<"first" | "noise" | null>(null);
+	const noiseTipShown = useRef(false);
 	const [typed, setTyped] = useState("");
 	const [error, setError] = useState("");
 	const [note, setNote] = useState("");
@@ -303,7 +307,14 @@ function Bot() {
 		// so it isn't shown; it's kept as the fallback text if the judge fails.
 		captions.current?.start(() => {});
 		mic.current.listen({
-			onLevel: setVoiceLevel,
+			onLevel: (v) => {
+				setVoiceLevel(v);
+				// A loud room (boiling water, a fan): suggest headphones, once per visit.
+				if (!noiseTipShown.current && (mic.current?.noiseLevel ?? 0) > 0.35) {
+					noiseTipShown.current = true;
+					setTip("noise");
+				}
+			},
 			onTurn: async (wav) => {
 				const spokeAt = performance.now();
 				const caption = captions.current?.stop() ?? "";
@@ -348,6 +359,12 @@ function Bot() {
 
 	const start = async () => {
 		setError("");
+		// First time talking: suggest headphones once.
+		try {
+			if (!localStorage.getItem(TIP_KEY)) setTip("first");
+		} catch {
+			// Private mode: skip the tip.
+		}
 		voice.current ??= new Voice(Boolean(statusRef.current?.voice.ready));
 		voice.current.unlock();
 		captions.current ??= new Captions();
@@ -430,6 +447,27 @@ function Bot() {
 		setTopic("libre");
 	};
 
+	// 🔁 Say Ale's last line again (e.g. a pot drowned it out).
+	async function repeat() {
+		const last = [...turnsRef.current]
+			.reverse()
+			.find((t) => t.role === "tutor");
+		if (!last || last.role !== "tutor" || busy.current) return;
+		busy.current = true;
+		mic.current?.release();
+		captions.current?.stop();
+		voice.current ??= new Voice(Boolean(statusRef.current?.voice.ready));
+		voice.current.unlock();
+		setMode("speaking");
+		try {
+			await voice.current.speak(last.reply.say);
+		} finally {
+			busy.current = false;
+			setMode("idle");
+			if (handsFreeRef.current) void listen();
+		}
+	}
+
 	// A suggestion was tapped: remember the interest and start talking about it.
 	const pickTopic = (t: Topic) => {
 		saveInterests(notePicked(interests, t));
@@ -462,6 +500,7 @@ function Bot() {
 			].filter(Boolean)
 		: [];
 	const face = FACE[mode];
+	const lastTutor = turns.map((t) => t.role).lastIndexOf("tutor");
 	const fmt = (m?: Meta) => (m ? `${(m.ms / 1000).toFixed(1)}s` : "–");
 
 	return (
@@ -527,6 +566,31 @@ function Bot() {
 				</button>
 			</div>
 
+			{tip && (
+				<div className="mx-5 mt-3 flex items-start gap-2 rounded-sm border-2 border-ink bg-card px-3 py-2 text-sm">
+					<p className="flex-1">
+						{tip === "first"
+							? "🎧 Con audífonos (como AirPods) escuchas mejor a Ale y Ale te entiende mejor, sobre todo en la cocina."
+							: "🎧 Hay mucho ruido. Con audífonos Ale te oye mejor."}
+					</p>
+					<button
+						type="button"
+						aria-label="Cerrar"
+						className="-mr-1 grid h-6 w-6 place-items-center"
+						onClick={() => {
+							setTip(null);
+							try {
+								localStorage.setItem(TIP_KEY, "1");
+							} catch {
+								// Private mode.
+							}
+						}}
+					>
+						✕
+					</button>
+				</div>
+			)}
+
 			<div className="relative mt-4 flex min-h-0 flex-1 flex-col border-t-2 border-line">
 				<div className="ph-no-capture min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
 					{turns.length === 0 && (
@@ -556,8 +620,13 @@ function Bot() {
 							// biome-ignore lint/suspicious/noArrayIndexKey: append-only transcript
 							<LearnerBubble key={i} attempt={t.attempt} />
 						) : (
-							// biome-ignore lint/suspicious/noArrayIndexKey: append-only transcript
-							<TutorBubble key={i} reply={t.reply} color={color} />
+							<TutorBubble
+								// biome-ignore lint/suspicious/noArrayIndexKey: append-only transcript
+								key={i}
+								reply={t.reply}
+								color={color}
+								onRepeat={i === lastTutor ? repeat : undefined}
+							/>
 						),
 					)}
 					{mode === "listening" && <ListeningBubble level={voiceLevel} />}
@@ -952,12 +1021,29 @@ function Practice({ text, color }: { text: string; color: string }) {
 	);
 }
 
-function TutorBubble({ reply, color }: { reply: TutorReply; color: string }) {
+function TutorBubble({
+	reply,
+	color,
+	onRepeat,
+}: {
+	reply: TutorReply;
+	color: string;
+	onRepeat?: () => void;
+}) {
 	return (
 		<div className="max-w-[90%]">
 			<p className="text-lg leading-snug font-semibold">
 				<Practice text={reply.say} color={color} />
 			</p>
+			{onRepeat && (
+				<button
+					type="button"
+					onClick={onRepeat}
+					className="mt-1 h-8 rounded-sm border-2 border-ink px-2.5 text-xs font-bold"
+				>
+					🔁 Repetir
+				</button>
+			)}
 			{reply.corrections.map((c) => (
 				<p
 					key={c.word}

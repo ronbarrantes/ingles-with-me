@@ -3,10 +3,30 @@
 
 import { googleToken } from "../google";
 
+// A few dB louder, for kitchens and noisy rooms (VOICE_GAIN_DB, default 4,
+// Google allows up to 16). Voices that don't take it get the call without.
+const gainDb = () => Number(process.env.VOICE_GAIN_DB ?? 4);
+let gainOk = true;
+
 export async function speak(
 	voice: string,
 	text: string,
 	encoding: "MP3" | "LINEAR16" = "MP3",
+): Promise<ArrayBuffer> {
+	try {
+		return await synth(voice, text, encoding, gainOk ? gainDb() : 0);
+	} catch (e) {
+		if (!gainOk || !gainDb() || !/volume|gain/i.test(String(e))) throw e;
+		gainOk = false;
+		return synth(voice, text, encoding, 0);
+	}
+}
+
+async function synth(
+	voice: string,
+	text: string,
+	encoding: "MP3" | "LINEAR16",
+	volumeGainDb: number,
 ): Promise<ArrayBuffer> {
 	const languageCode = voice.split("-").slice(0, 2).join("-") || "en-US";
 	const res = await fetch(
@@ -23,6 +43,7 @@ export async function speak(
 				audioConfig: {
 					audioEncoding: encoding,
 					...(encoding === "LINEAR16" && { sampleRateHertz: 24_000 }),
+					...(volumeGainDb && { volumeGainDb }),
 				},
 			}),
 		},

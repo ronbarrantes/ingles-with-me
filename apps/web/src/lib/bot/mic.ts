@@ -2,6 +2,8 @@
 // (a short silence after speech). Each turn becomes a small 16 kHz mono WAV
 // for the judge.
 
+import { setAudioSession } from "./audioSession";
+
 const TARGET_RATE = 16_000;
 const START_CHUNKS = 2; // loud chunks in a row before we call it speech
 const END_SILENCE_MS = 1_100; // quiet this long after speech = turn over
@@ -49,6 +51,7 @@ export class Mic {
 	 */
 	async open() {
 		if (this.ctx && this.stream) return;
+		setAudioSession("play-and-record");
 		if (this.ctx && this.node) {
 			this.stream = await this.getStream();
 			this.source = this.ctx.createMediaStreamSource(this.stream);
@@ -104,6 +107,11 @@ export class Mic {
 		this.node = undefined;
 		this.stream = undefined;
 		this.source = undefined;
+	}
+
+	/** The room's background loudness (0-1 scale like onLevel). */
+	get noiseLevel() {
+		return Math.min(1, this.noise / 0.08);
 	}
 
 	private reset() {
