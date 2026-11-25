@@ -9,4 +9,5 @@ export const ReplySchema = z.object({
 	),
 	new_words: z.array(z.object({ en: z.string(), es: z.string() })),
 	learner_name: z.object({ name: z.string() }),
+	pace: z.enum(["more_spanish", "same", "more_english"]),
 });

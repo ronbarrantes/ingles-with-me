@@ -16,13 +16,21 @@ describe("teacher prompt", () => {
 
 	it("tells the teacher whether it knows their name", () => {
 		expect(
-			sessionNote("comida", { learner: null, hard: [], focus: [] }),
+			sessionNote("comida", {
+				learner: null,
+				hard: [],
+				focus: [],
+				level: { value: 2, first: false },
+			}),
 		).toContain("don't know their name");
 		const note = sessionNote("comida", {
 			learner: { name: "Ximena" },
 			hard: [],
 			focus: ["bread", "rice"],
+			level: { value: 1, first: true },
 		});
+		expect(note).toContain("English level: 1 of 4 (mostly Spanish)");
+		expect(note).toContain("first conversation ever");
 		expect(note).toContain("Their name is Ximena");
 		expect(note).toContain("Topic: Comida (food, cooking and meals)");
 		expect(note).toContain("bread, rice");
@@ -32,6 +40,7 @@ describe("teacher prompt", () => {
 		const note = sessionNote("libre", {
 			learner: null,
 			focus: [],
+			level: { value: 3, first: false },
 			hard: [
 				{
 					word: "three",
@@ -48,7 +57,12 @@ describe("teacher prompt", () => {
 			"Hard words: three (missed 3x, last 52, best 61, la th sonó como t).",
 		);
 		expect(
-			sessionNote("libre", { learner: null, hard: [], focus: [] }),
+			sessionNote("libre", {
+				learner: null,
+				hard: [],
+				focus: [],
+				level: { value: 2, first: false },
+			}),
 		).not.toContain("Hard words");
 	});
 
@@ -103,6 +117,7 @@ describe("teacher prompt", () => {
 					corrections: [],
 					new_words: [],
 					learner_name: { name: "" },
+					pace: "same",
 				},
 			},
 		];

@@ -35,6 +35,7 @@ const TutorReplySchema = z.object({
 		.max(5),
 	new_words: z.array(z.object({ en: z.string(), es: z.string() })).max(10),
 	learner_name: LearnerSchema.default({ name: "" }),
+	pace: z.enum(["more_spanish", "same", "more_english"]).default("same"),
 });
 const RequestSchema = z.object({
 	topic: z.string().max(30).refine(isChatTopic),
@@ -63,6 +64,12 @@ const RequestSchema = z.object({
 		.max(12)
 		.default([]),
 	focus: z.array(z.string().max(40)).max(15).default([]),
+	level: z
+		.object({
+			value: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+			first: z.boolean(),
+		})
+		.default({ value: 2, first: false }),
 });
 
 export const Route = createFileRoute("/api/bot/reply")({
@@ -85,13 +92,15 @@ export const Route = createFileRoute("/api/bot/reply")({
 				);
 				if (!parsed.success)
 					return Response.json({ error: "bad_request" }, { status: 400 });
-				const { topic, history, latest, learner, hard, focus } = parsed.data;
+				const { topic, history, latest, learner, hard, focus, level } =
+					parsed.data;
 				const started = Date.now();
 				try {
 					const r = await tutorReply(topic as Topic, history, latest, {
 						learner,
 						hard,
 						focus,
+						level,
 					});
 					const body: ReplyResponse = {
 						reply: r.reply,

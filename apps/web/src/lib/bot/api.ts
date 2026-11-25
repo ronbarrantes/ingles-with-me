@@ -94,6 +94,7 @@ export const fetchReply = async (
 	learner: LearnerName | null,
 	hard: HardWord[],
 	focus: string[],
+	level: { value: 1 | 2 | 3 | 4; first: boolean },
 ): Promise<ReplyResponse> =>
 	(
 		await post(
@@ -105,6 +106,7 @@ export const fetchReply = async (
 				learner,
 				hard,
 				focus,
+				level,
 			},
 			TIMEOUT.teacher,
 		)

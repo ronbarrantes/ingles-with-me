@@ -32,6 +32,8 @@ export interface TeacherContext {
 	hard: HardWord[];
 	/** Words from the topic to build the chat around (still being learned). */
 	focus: string[];
+	/** How much English to use (1 mostly Spanish … 4 English), and whether this is their first chat ever. */
+	level: { value: 1 | 2 | 3 | 4; first: boolean };
 }
 
 /** A word she has trouble pronouncing, remembered across conversations. */
@@ -70,6 +72,8 @@ export interface TutorReply {
 	new_words: NewWord[];
 	/** Set when she tells the teacher her name (or corrects its spelling); name "" otherwise. */
 	learner_name: LearnerName;
+	/** The teacher's read: should Ale use more Spanish, the same, or more English? */
+	pace: "more_spanish" | "same" | "more_english";
 }
 
 export type Turn =
@@ -88,6 +92,7 @@ export interface ReplyRequest {
 	hard: HardWord[];
 	/** Words from the chosen topic to weave in. */
 	focus: string[];
+	level: { value: 1 | 2 | 3 | 4; first: boolean };
 }
 
 export interface Meta {

@@ -63,6 +63,7 @@ function mockReply(
 				corrections: [],
 				new_words: [],
 				learner_name: { name: told },
+				pace: "same",
 			},
 			inputTokens: 0,
 			outputTokens: 0,
@@ -78,6 +79,7 @@ function mockReply(
 				corrections: [],
 				new_words: [],
 				learner_name: NO_NAME,
+				pace: "same",
 			}
 		: weak
 			? {
@@ -91,12 +93,14 @@ function mockReply(
 					],
 					new_words: [],
 					learner_name: NO_NAME,
+					pace: "same",
 				}
 			: {
 					say: `Nice! You said: ${latest.text}. A butterfly is «mariposa» in Spanish. Can you say "butterfly"?`,
 					corrections: [],
 					new_words: [{ en: "butterfly", es: "mariposa" }],
 					learner_name: NO_NAME,
+					pace: "same",
 				};
 	return { reply, inputTokens: 0, outputTokens: 0, costUsd: 0 };
 }

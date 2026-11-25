@@ -12,6 +12,8 @@ const KEEP_TAIL_MS = 250; // of the closing silence; the rest isn't sent
 
 export interface MicHandlers {
 	onSpeechStart?: () => void;
+	/** Loudness 0–1 about 12 times a second, for the listening bubble. */
+	onLevel?: (level: number) => void;
 	onTurn: (wavBase64: string, ms: number) => void;
 }
 
@@ -120,6 +122,7 @@ export class Mic {
 		let sum = 0;
 		for (const v of chunk) sum += v * v;
 		const rms = Math.sqrt(sum / chunk.length);
+		this.handlers.onLevel?.(Math.min(1, rms / 0.08));
 		const threshold = Math.max(0.012, this.noise * 3);
 
 		if (!this.speaking) {
