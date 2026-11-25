@@ -39,6 +39,7 @@ export const Route = createFileRoute("/api/bot/hear")({
 							ms: Date.now() - started,
 							inputTokens: r.inputTokens,
 							outputTokens: r.outputTokens,
+							thoughtTokens: r.thoughtTokens,
 							costUsd: null,
 						},
 					};

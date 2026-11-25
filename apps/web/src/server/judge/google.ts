@@ -34,25 +34,47 @@ const INSTRUCTIONS = `You assess the spoken English of an adult whose first lang
 4. If lang is "es", return an empty words list and accuracy and fluency of 0.
 Be consistent: the same recording should get the same scores.`;
 
-// Scoring a short clip doesn't need deep reasoning, and thinking adds seconds.
+// Scoring a short clip doesn't need deep reasoning, and thinking adds seconds
+// (and can use up the whole output budget, leaving an empty answer).
+// JUDGE_THINKING: minimal (default) | low | medium | high | default (model's own).
+const LEVELS: Record<string, ThinkingLevel> = {
+	minimal: ThinkingLevel.MINIMAL,
+	low: ThinkingLevel.LOW,
+	medium: ThinkingLevel.MEDIUM,
+	high: ThinkingLevel.HIGH,
+};
+const level = () => LEVELS[process.env.JUDGE_THINKING ?? "minimal"];
 // Models that don't take a thinking level get the call without it.
 let thinkingOk = true;
 
-export async function hear(
-	model: string,
-	wavBase64: string,
-): Promise<{ attempt: Attempt; inputTokens: number; outputTokens: number }> {
+export async function hear(model: string, wavBase64: string): Promise<Heard> {
 	try {
-		return await call(model, wavBase64, thinkingOk);
+		return await callOnce(model, wavBase64);
 	} catch (e) {
-		if (!thinkingOk || !/thinking/i.test(String(e))) throw e;
-		thinkingOk = false;
-		console.warn("judge: model refused a thinking level; retrying without");
-		return call(model, wavBase64, false);
+		if (thinkingOk && /thinking/i.test(String(e))) {
+			thinkingOk = false;
+			console.warn("judge: model refused a thinking level; retrying without");
+			return callOnce(model, wavBase64);
+		}
+		if (e instanceof EmptyAnswer) {
+			console.warn(`judge: ${e.message}; retrying once`);
+			return callOnce(model, wavBase64);
+		}
+		throw e;
 	}
 }
 
-async function call(model: string, wavBase64: string, lowThinking: boolean) {
+class EmptyAnswer extends Error {}
+
+interface Heard {
+	attempt: Attempt;
+	inputTokens: number;
+	outputTokens: number;
+	thoughtTokens: number;
+}
+
+async function callOnce(model: string, wavBase64: string): Promise<Heard> {
+	const lvl = thinkingOk ? level() : undefined;
 	const res = await gemini().models.generateContent({
 		model,
 		contents: [
@@ -69,13 +91,23 @@ async function call(model: string, wavBase64: string, lowThinking: boolean) {
 			responseMimeType: "application/json",
 			responseJsonSchema: geminiSchema(JudgeSchema),
 			temperature: 0,
-			maxOutputTokens: 2000,
-			...(lowThinking && {
-				thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
-			}),
+			maxOutputTokens: 8192,
+			...(lvl && { thinkingConfig: { thinkingLevel: lvl } }),
 		},
 	});
-	const parsed = JudgeSchema.safeParse(JSON.parse(res.text ?? "null"));
+	const u = res.usageMetadata;
+	const thoughtTokens = u?.thoughtsTokenCount ?? 0;
+	if (!res.text?.trim())
+		throw new EmptyAnswer(
+			`empty answer (finish: ${res.candidates?.[0]?.finishReason ?? "?"}, thoughts: ${thoughtTokens})`,
+		);
+	let json: unknown;
+	try {
+		json = JSON.parse(res.text);
+	} catch {
+		throw new EmptyAnswer("answer was cut off");
+	}
+	const parsed = JudgeSchema.safeParse(json);
 	if (!parsed.success) throw new Error("judge reply was not valid JSON");
 	const j = parsed.data;
 	const attempt: Attempt =
@@ -88,10 +120,10 @@ async function call(model: string, wavBase64: string, lowThinking: boolean) {
 					fluency: j.fluency,
 					words: j.words,
 				};
-	const u = res.usageMetadata;
 	return {
 		attempt,
 		inputTokens: u?.promptTokenCount ?? 0,
-		outputTokens: (u?.candidatesTokenCount ?? 0) + (u?.thoughtsTokenCount ?? 0),
+		outputTokens: (u?.candidatesTokenCount ?? 0) + thoughtTokens,
+		thoughtTokens,
 	};
 }
