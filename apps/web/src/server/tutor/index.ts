@@ -93,7 +93,7 @@ function mockReply(
 					learner_name: NO_NAME,
 				}
 			: {
-					say: `Nice! You said: ${latest.text}. A butterfly is a mariposa. Can you say "butterfly"?`,
+					say: `Nice! You said: ${latest.text}. A butterfly is «mariposa» in Spanish. Can you say "butterfly"?`,
 					corrections: [],
 					new_words: [{ en: "butterfly", es: "mariposa" }],
 					learner_name: NO_NAME,

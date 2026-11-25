@@ -3,7 +3,11 @@
 
 import { googleToken } from "../google";
 
-export async function speak(voice: string, text: string): Promise<ArrayBuffer> {
+export async function speak(
+	voice: string,
+	text: string,
+	encoding: "MP3" | "LINEAR16" = "MP3",
+): Promise<ArrayBuffer> {
 	const languageCode = voice.split("-").slice(0, 2).join("-") || "en-US";
 	const res = await fetch(
 		"https://texttospeech.googleapis.com/v1/text:synthesize",
@@ -16,7 +20,10 @@ export async function speak(voice: string, text: string): Promise<ArrayBuffer> {
 			body: JSON.stringify({
 				input: { text },
 				voice: { languageCode, name: voice },
-				audioConfig: { audioEncoding: "MP3" },
+				audioConfig: {
+					audioEncoding: encoding,
+					...(encoding === "LINEAR16" && { sampleRateHertz: 24_000 }),
+				},
 			}),
 		},
 	);

@@ -21,6 +21,10 @@ export const judgeSpec = () =>
 	spec(process.env.JUDGE, "google:gemini-4-hydrogen");
 export const voiceSpec = () =>
 	spec(process.env.VOICE, "google:en-US-Chirp3-HD-Aoede");
+/** Voice for Spanish words inside a line; defaults to the same voice in es-US. */
+export const voiceEs = () =>
+	process.env.VOICE_ES?.split(":").slice(1).join(":") ||
+	voiceSpec().model.replace(/^[a-z]{2}-[A-Z]{2}/, "es-US");
 export const mocked = () => process.env.BOT_MOCK === "1";
 
 export const label = (s: Spec) => `${s.provider}:${s.model}`;
