@@ -3,7 +3,7 @@ import { z } from "zod";
 import { checkPasscode } from "#/server/guard";
 import { voiceReady, voiceSpeak } from "#/server/voice";
 
-// Ale's line → MP3. The page falls back to the phone's voice if this fails.
+// Ale's line → MP3 (or WAV when it mixes in Spanish). The page falls back to the phone's voice if this fails.
 const Body = z.object({ text: z.string().min(1).max(1200) });
 
 export const Route = createFileRoute("/api/bot/speak")({
@@ -18,10 +18,10 @@ export const Route = createFileRoute("/api/bot/speak")({
 				if (!parsed.success)
 					return Response.json({ error: "bad_request" }, { status: 400 });
 				try {
-					const mp3 = await voiceSpeak(parsed.data.text);
-					return new Response(mp3, {
+					const { audio, type } = await voiceSpeak(parsed.data.text);
+					return new Response(audio, {
 						headers: {
-							"Content-Type": "audio/mpeg",
+							"Content-Type": type,
 							"Cache-Control": "no-store",
 						},
 					});

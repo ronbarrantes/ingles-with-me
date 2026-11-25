@@ -727,9 +727,23 @@ function MenuItem({
 	);
 }
 
-/** What Ale wants her to say comes in "quotes": show it bold and underlined. */
+/**
+ * What Ale wants them to say comes in "quotes": bold and underlined.
+ * Spanish comes in «guillemets»: italic, without the marks.
+ */
 function Practice({ text, color }: { text: string; color: string }) {
 	const parts = text.split(/["“”]([^"“”]+)["“”]/);
+	const spanish = (s: string, key: number) =>
+		s.split(/«([^«»]*)»/).map((p, j) =>
+			j % 2 === 1 ? (
+				// biome-ignore lint/suspicious/noArrayIndexKey: fixed split of one string
+				<em key={`${key}-${j}`} className="font-semibold">
+					{p}
+				</em>
+			) : (
+				p
+			),
+		);
 	return parts.map((part, i) =>
 		i % 2 === 1 ? (
 			<strong
@@ -741,7 +755,7 @@ function Practice({ text, color }: { text: string; color: string }) {
 				{part}
 			</strong>
 		) : (
-			part
+			spanish(part, i)
 		),
 	);
 }

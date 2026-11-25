@@ -1,8 +1,9 @@
 // Speaking Ale's replies: the server's voice (Google Text-to-Speech) when it's
 // configured, otherwise, or if it fails, the phone's built-in voice.
 
-import { speak as phoneSpeak } from "#/lib/speech";
+import { speakParts } from "#/lib/speech";
 import { fetchSpeech } from "./api";
+import { splitLang } from "./segments";
 
 // A short silent WAV, played on the first tap so iPhones allow audio later.
 function silentWav() {
@@ -86,7 +87,7 @@ export class Voice {
 			if (typeof window === "undefined" || !("speechSynthesis" in window))
 				return done();
 			this.stopped = done;
-			phoneSpeak(text, 0.95);
+			speakParts(splitLang(text), 0.95);
 			// Wait for the utterance to start, then to finish.
 			setTimeout(() => {
 				const check = setInterval(() => {

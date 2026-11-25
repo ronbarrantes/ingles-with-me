@@ -50,6 +50,9 @@ test("typed conversation gets a reply and a new word", async ({ page }) => {
 	await expect(
 		page.locator("strong", { hasText: /^butterfly$/ }),
 	).toBeVisible();
+	// Spanish comes in italics, without the «» marks.
+	await expect(page.locator("em", { hasText: /^mariposa$/ })).toBeVisible();
+	await expect(page.locator("p", { hasText: "Nice!" })).not.toContainText("«");
 	// The page is ready for the next turn.
 	await expect(page.getByText("Toca «Hablar» para empezar")).toBeVisible({
 		timeout: 15_000,

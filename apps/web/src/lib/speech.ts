@@ -72,6 +72,44 @@ export function speak(text: string, rate = 0.85) {
 	}
 }
 
+let spanish: SpeechSynthesisVoice | null | undefined;
+
+function pickSpanish() {
+	const es = window.speechSynthesis
+		.getVoices()
+		.filter((v) => v.lang.toLowerCase().replace("_", "-").startsWith("es"));
+	// Latin American first (es-US, es-MX), then any Spanish.
+	return (
+		es.find((v) => /es-(us|mx|419)/i.test(v.lang.replace("_", "-"))) ?? es[0]
+	);
+}
+
+/** Speak a line in pieces, switching to a Spanish voice for Spanish parts. */
+export function speakParts(
+	parts: { lang: "en" | "es"; text: string }[],
+	rate = 0.85,
+) {
+	if (!canSpeak()) return;
+	const synth = window.speechSynthesis;
+	voice ??= pickVoice();
+	spanish ??= pickSpanish();
+	const utterances = parts.map((p) => {
+		const u = new SpeechSynthesisUtterance(p.text);
+		const v = p.lang === "es" ? spanish : voice;
+		u.lang = v?.lang ?? (p.lang === "es" ? "es-US" : "en-US");
+		if (v) u.voice = v;
+		u.rate = rate;
+		return u;
+	});
+	const go = () => {
+		for (const u of utterances) synth.speak(u);
+	};
+	if (synth.speaking || synth.pending) {
+		synth.cancel();
+		setTimeout(go, 60);
+	} else go();
+}
+
 let last = { text: "", at: 0, slow: false };
 
 /**
