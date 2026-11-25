@@ -292,3 +292,43 @@ test("listening shows a bubble with bars, not the live English caption", async (
 	await page.getByRole("button", { name: /Pausar/ }).click();
 	await expect(page.getByRole("status", { name: "Te escucho" })).toHaveCount(0);
 });
+
+test("🔁 Repetir sits on Ale's last line only and replays it", async ({
+	page,
+}) => {
+	await unlockAle(page);
+	const box = page.getByPlaceholder("…o escribe aquí");
+	await box.fill("hello");
+	await page.getByRole("button", { name: "Enviar" }).click();
+	await expect(page.getByRole("button", { name: /Repetir/ })).toHaveCount(1);
+	await expect(page.getByText("Toca «Hablar» para empezar")).toBeVisible({
+		timeout: 10_000,
+	});
+	await box.fill("I see a butterfly");
+	await page.getByRole("button", { name: "Enviar" }).click();
+	await expect(page.getByText(/butterfly · mariposa/)).toBeVisible();
+	await expect(page.getByRole("button", { name: /Repetir/ })).toHaveCount(1);
+	await expect(page.getByText("Toca «Hablar» para empezar")).toBeVisible({
+		timeout: 10_000,
+	});
+	await page.getByRole("button", { name: /Repetir/ }).click();
+	await expect(page.getByText("Toca «Hablar» para empezar")).toBeVisible({
+		timeout: 10_000,
+	});
+});
+
+test("headphone tip shows on the first talk and stays dismissed", async ({
+	page,
+}) => {
+	await unlockAle(page);
+	await page.getByRole("button", { name: /Hablar/ }).click();
+	const tip = page.getByText(/Con audífonos/);
+	await expect(tip).toBeVisible();
+	await page.getByRole("button", { name: /Pausar/ }).click();
+	await page.getByRole("button", { name: "Cerrar" }).click();
+	await expect(tip).toHaveCount(0);
+	await page.reload();
+	await page.getByRole("button", { name: /Hablar/ }).click();
+	await expect(page.getByText(/Con audífonos \(como AirPods\)/)).toHaveCount(0);
+	await page.getByRole("button", { name: /Pausar/ }).click();
+});
