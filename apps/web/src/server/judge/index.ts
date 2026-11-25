@@ -30,6 +30,7 @@ function mockHear(caption: string): {
 	attempt: Attempt;
 	inputTokens: number;
 	outputTokens: number;
+	thoughtTokens: number;
 } {
 	const text = caption.trim() || "I have three dogs";
 	const words = text.split(/\s+/).map((word, i) => {
@@ -45,5 +46,6 @@ function mockHear(caption: string): {
 		attempt: { text, lang: "en", accuracy: 80, fluency: 85, words },
 		inputTokens: 0,
 		outputTokens: 0,
+		thoughtTokens: 0,
 	};
 }

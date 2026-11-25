@@ -229,3 +229,19 @@ test("menu: new conversation clears the chat", async ({ page }) => {
 	await page.getByRole("menuitem", { name: /Nueva conversación/ }).click();
 	await expect(page.getByText("¿De qué hablamos?")).toBeVisible();
 });
+
+test("a judge failure is a soft note, not an error", async ({ page }) => {
+	await unlockAle(page);
+	await page.route("**/api/bot/hear", (route) =>
+		route.fulfill({
+			status: 502,
+			contentType: "application/json",
+			body: JSON.stringify({ error: "judge_error", message: "SyntaxError" }),
+		}),
+	);
+	await page.getByRole("button", { name: /Hablar/ }).click();
+	await expect(
+		page.getByText("No pude revisar tu pronunciación esta vez."),
+	).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByText(/SyntaxError/)).toHaveCount(0);
+});

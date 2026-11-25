@@ -175,6 +175,17 @@ function Bot() {
 					: focusWords(wordsRef.current, topicRef.current),
 			);
 			if (stale()) return;
+			// Don't repeat new-word chips already shown in this chat.
+			const shown = new Set(
+				turnsRef.current.flatMap((t) =>
+					t.role === "tutor"
+						? t.reply.new_words.map((w) => w.en.toLowerCase())
+						: [],
+				),
+			);
+			res.reply.new_words = res.reply.new_words.filter(
+				(w) => !shown.has(w.en.toLowerCase()),
+			);
 			// She told Ale her name (or fixed its spelling): remember it on this phone.
 			if (res.reply.learner_name?.name) rememberName(res.reply.learner_name);
 			pushTurn({ role: "tutor", reply: res.reply });
@@ -221,7 +232,16 @@ function Bot() {
 						setTiming((t) => ({ ...t, judge: res.meta }));
 						addCost(res.meta);
 					} catch (e) {
-						handleError(e);
+						// Passcode/config problems stop the page; a judge hiccup doesn't.
+						if (
+							e instanceof BotError &&
+							(e.code === "wrong_passcode" || e.code === "not_configured")
+						)
+							handleError(e);
+						else {
+							console.warn("judge failed", e);
+							setNote("No pude revisar tu pronunciación esta vez.");
+						}
 					}
 				}
 				// No judge (or it failed): use the live caption, without scores.
@@ -571,7 +591,7 @@ function Bot() {
 				{(timing.judge || timing.teacher) && (
 					<p className="mt-2 text-center text-[11px] text-muted tabular-nums">
 						{timing.judge &&
-							`juez ${timing.judge.model} ${fmt(timing.judge)} · `}
+							`juez ${timing.judge.model} ${fmt(timing.judge)}${timing.judge.thoughtTokens ? ` (pensó ${timing.judge.thoughtTokens})` : ""} · `}
 						maestro {timing.teacher?.model} {fmt(timing.teacher)}
 						{timing.teacher?.costUsd != null &&
 							` · $${timing.teacher.costUsd.toFixed(4)}`}

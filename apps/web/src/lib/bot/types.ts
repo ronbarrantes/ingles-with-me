@@ -97,6 +97,8 @@ export interface Meta {
 	outputTokens: number;
 	/** null when the price of the model isn't known. */
 	costUsd: number | null;
+	/** Tokens the model spent thinking, when it reports them. */
+	thoughtTokens?: number;
 }
 
 export interface ReplyResponse {
