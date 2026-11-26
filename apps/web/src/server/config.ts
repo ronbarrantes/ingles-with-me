@@ -2,8 +2,9 @@
 // variable in the form "provider:model", so swapping is a settings change:
 //   TEACHER=anthropic:claude-sonnet-5-5   (or google:gemini-4-hydrogen …)
 //   JUDGE=google:gemini-4-hydrogen         (hears her and scores pronunciation)
-//   VOICE=gemini:gemini-2.5-flash-tts/Aoede (speaks Ale's replies; one
-//         multilingual voice. Or google:en-US-Chirp3-HD-Aoede for Chirp.)
+//   VOICE=google:en-US-Chirp3-HD-Aoede     (speaks Ale's replies; Spanish
+//         parts use the same voice in es-US. gemini:gemini-2.5-flash-tts/Aoede
+//         is one multilingual voice, but slower and rate-limited.)
 // BOT_MOCK=1 answers every role with canned data (testing without keys).
 
 export interface Spec {
@@ -21,7 +22,7 @@ export const teacherSpec = () =>
 export const judgeSpec = () =>
 	spec(process.env.JUDGE, "google:gemini-4-hydrogen");
 export const voiceSpec = () =>
-	spec(process.env.VOICE, "gemini:gemini-2.5-flash-tts/Aoede");
+	spec(process.env.VOICE, "google:en-US-Chirp3-HD-Aoede");
 /** Voice for Spanish words inside a line; defaults to the same voice in es-US. */
 export const voiceEs = () =>
 	process.env.VOICE_ES?.split(":").slice(1).join(":") ||
