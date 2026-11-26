@@ -112,5 +112,8 @@ export const fetchReply = async (
 		)
 	).json();
 
-export const fetchSpeech = async (text: string): Promise<Blob> =>
-	(await post("/api/bot/speak", { text }, TIMEOUT.voice)).blob();
+export const fetchSpeech = async (
+	text: string,
+	quick?: "en" | "es",
+): Promise<Blob> =>
+	(await post("/api/bot/speak", { text, quick }, TIMEOUT.voice)).blob();

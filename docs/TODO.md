@@ -3,6 +3,7 @@
 What's next, roughly in order. Small items ship together in batches.
 
 ## Next batch
+- [ ] **Cache fixed audio in Convex storage** (once Convex is set up): fillers first, then word cards. An `audio { text, voice, storageId }` table; the server serves a stored recording if it has one, otherwise makes it once with Google and saves it. Ale's live replies stay live. (Vercel Blob is the backup option.)
 - [ ] **Feedback**: 👍/👎 on Ale's replies (saved with model, level, topic) and a "Comentarios" item in the ⋯ menu (type or speak).
 - [ ] Tag PostHog events with `app: "ingles"` (so the project can be shared).
 - [ ] `docs/PRICING.md`: cost per turn and hour, price on value, tiers, the tutor comparison, free beta with founding members.
@@ -14,7 +15,7 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] **Barge-in**: keep the mic on while Ale talks; if the learner starts speaking, Ale stops and that becomes their turn. Stricter trigger while Ale speaks (echo), and an "Interrumpir a Ale" switch in the ⋯ menu.
 
 ## The 300 words
-- [ ] **Real voice for word cards**: generate each word and its example sentence once with Google TTS (Chirp) and save them as audio files (about $0.10 one time). Use them in cards, Palabras and Repasar; keep the phone's voice as the offline fallback. They can ship with the app, or live in Convex storage later.
+- [ ] **Real voice for word cards**: generate each word and its example sentence once with Google TTS (Chirp), cached in Convex storage (see Next batch), about $0.10 one time. Use them in cards, Palabras and Repasar; keep the phone's voice as the offline fallback. They can ship with the app, or live in Convex storage later.
 
 ## Speed and cost (check PostHog first)
 - [ ] Look at a day of `ale_turn` timings and the judge's thinking tokens ("pensó N").

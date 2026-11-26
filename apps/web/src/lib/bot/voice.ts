@@ -1,8 +1,9 @@
 // Speaking Ale's replies: the server's voice (Google Text-to-Speech) when it's
 // configured, otherwise, or if it fails, the phone's built-in voice.
 
+import { track, trackError } from "#/lib/analytics";
 import { speakParts } from "#/lib/speech";
-import { fetchSpeech } from "./api";
+import { BotError, fetchSpeech } from "./api";
 import { setAudioSession } from "./audioSession";
 import { splitLang } from "./segments";
 
@@ -95,20 +96,29 @@ export class Voice {
 	private clips = new Map<string, Blob>();
 	private fillerDone: Promise<void> = Promise.resolve();
 
-	/** Fetch the filler clips in the background (server voice only). */
-	prefetch(lines: string[]) {
-		if (!this.useServer) return;
-		for (const line of lines)
-			if (!this.clips.has(line))
-				fetchSpeech(line)
-					.then((b) => this.clips.set(line, b))
-					.catch(() => {});
+	/**
+	 * Fetch the filler clips in the background, one at a time (server voice
+	 * only), so they never compete with Ale's real lines.
+	 */
+	async prefetch(lines: { text: string; lang: "en" | "es" }[]) {
+		if (!this.useServer || this.prefetching) return;
+		this.prefetching = true;
+		for (const { text, lang } of lines) {
+			if (this.clips.has(text)) continue;
+			try {
+				this.clips.set(text, await fetchSpeech(text, lang));
+			} catch {
+				// Skip it; that filler just won't play.
+			}
+		}
+		this.prefetching = false;
 	}
+	private prefetching = false;
 
-	/** Play a filler right away, without waiting for it to end. */
+	/** Play a filler right away (if its clip is ready), without waiting for it to end. */
 	filler(line: string) {
-		setAudioSession("playback");
 		const clip = this.clips.get(line);
+		if (clip) setAudioSession("playback");
 		if (clip) {
 			const url = URL.createObjectURL(clip);
 			const audio = this.player();
@@ -123,8 +133,6 @@ export class Voice {
 				audio.play().catch(end);
 				setTimeout(end, 2500); // never hold up Ale's reply for long
 			});
-		} else if (!this.useServer && typeof window !== "undefined") {
-			speakParts(splitLang(line), 1);
 		}
 	}
 
@@ -139,9 +147,18 @@ export class Voice {
 		setAudioSession("playback");
 		if (this.useServer) {
 			try {
-				return await this.playServer(text, onStart);
-			} catch {
-				// Fall through to the phone voice.
+				try {
+					return await this.playServer(text, onStart);
+				} catch (first) {
+					// One quick retry (a busy moment); a timeout won't get better.
+					if (first instanceof BotError && first.code === "timeout")
+						throw first;
+					return await this.playServer(text, onStart);
+				}
+			} catch (e) {
+				// Fall through to the phone voice, and tell us it happened.
+				trackError(e, { stage: "voice-play" });
+				track("voice_fallback");
 			}
 		}
 		onStart?.();

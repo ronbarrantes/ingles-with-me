@@ -66,12 +66,35 @@ const FACE: Record<Mode, { emoji: string; label: string }> = {
 
 const TIP_KEY = "iwm:tip-headphones";
 
-// Said the instant they stop talking (clips cached on the phone): Spanish
-// for levels 1–2, English for 3–4.
+// Said right after they stop talking, about half the time (clips cached on
+// the phone, fast voice): Spanish for levels 1–2, English for 3–4.
 const FILLERS = {
-	es: ["«A ver…»", "«Mmm, muy bien.»", "«Okay, a ver.»"],
-	en: ["Mm-hm.", "Okay.", "Let me see."],
+	es: [
+		"A ver…",
+		"Ajá.",
+		"Mmm.",
+		"Okay.",
+		"Bueno…",
+		"Mmm, a ver.",
+		"Sí, sí.",
+		"Ajá, a ver.",
+		"Muy bien…",
+		"Déjame ver.",
+	],
+	en: [
+		"Mm-hm.",
+		"Okay.",
+		"Hmm.",
+		"Uh-huh.",
+		"Right.",
+		"Let me see.",
+		"Mmm, okay.",
+		"Got it.",
+		"Alright…",
+		"I see.",
+	],
 };
+const FILLER_CHANCE = 0.5;
 
 const scoreColor = (n: number) =>
 	n >= 75 ? "#3BB273" : n >= 60 ? "#F3A712" : "#E4572E";
@@ -86,7 +109,7 @@ function Bot() {
 	const [voiceLevel, setVoiceLevel] = useState(0);
 	// Their turn is being checked: show their bubble right away, text comes next.
 	const [pending, setPending] = useState(false);
-	const lastFiller = useRef("");
+	const recentFillers = useRef<string[]>([]);
 	const [tip, setTip] = useState<"first" | "noise" | null>(null);
 	const noiseTipShown = useRef(false);
 	const [typed, setTyped] = useState("");
@@ -376,13 +399,22 @@ function Bot() {
 
 	function sayFiller() {
 		const lvl = levelRef.current ? effective(levelRef.current) : 1;
+		if (Math.random() > FILLER_CHANCE) return; // not every time: sounds more natural
 		const options = FILLERS[lvl <= 2 ? "es" : "en"].filter(
-			(f) => f !== lastFiller.current,
+			(f) => !recentFillers.current.includes(f),
 		);
 		const line = options[Math.floor(Math.random() * options.length)];
-		lastFiller.current = line;
+		recentFillers.current = [line, ...recentFillers.current].slice(0, 2);
 		voice.current?.filler(line);
+		// If the level changed language, fetch that set too (no-op when cached).
+		void voice.current?.prefetch(fillerLines());
 	}
+
+	const fillerLines = () => {
+		const lvl = levelRef.current ? effective(levelRef.current) : 1;
+		const lang = lvl <= 2 ? "es" : "en";
+		return FILLERS[lang].map((text) => ({ text, lang }) as const);
+	};
 
 	const start = async () => {
 		setError("");
@@ -394,7 +426,6 @@ function Bot() {
 		}
 		voice.current ??= new Voice(Boolean(statusRef.current?.voice.ready));
 		voice.current.unlock();
-		voice.current.prefetch([...FILLERS.es, ...FILLERS.en]);
 		captions.current ??= new Captions();
 		try {
 			mic.current ??= new Mic();
@@ -427,6 +458,8 @@ function Bot() {
 		}
 		if (turnsRef.current.length === 0) await askAle(null);
 		else void listen();
+		// After Ale's first line, so the clips never slow it down.
+		void voice.current?.prefetch(fillerLines());
 	};
 
 	const pause = () => {

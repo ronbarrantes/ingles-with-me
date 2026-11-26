@@ -35,6 +35,19 @@ export interface Speech {
  * WAV pieces and joined into one WAV (joined MP3s can stop early on iPhone).
  * If the Spanish voice fails, that piece uses the English one.
  */
+/**
+ * Short stock phrases ("Mm-hm", "A ver…"): always the fast Chirp voice in
+ * the given language, never the slower Gemini voice.
+ */
+export async function voiceQuick(text: string, lang: "en" | "es") {
+	const speak = providers.google.speak ?? googleSpeak;
+	const voice = lang === "es" ? voiceEs() : quickEnglish();
+	return { audio: await speak(voice, text), type: "audio/mpeg" as const };
+}
+
+const quickEnglish = () =>
+	voiceSpec().provider === "google" ? voiceSpec().model : CHIRP_FALLBACK;
+
 export async function voiceSpeak(text: string): Promise<Speech> {
 	const { provider, model: configured } = voiceSpec();
 	let model = configured;
