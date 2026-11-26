@@ -3,6 +3,7 @@
 What's next, roughly in order. Small items ship together in batches.
 
 ## Next batch
+- [ ] **Microphone prompts on iPhone**: releasing and retaking the mic makes Safari ask every turn. Show a one-time Spanish tip (Safari: aA → Website Settings → Microphone → Allow), plus a "Mantener micrófono abierto" switch in the ⋯ menu (no prompts, but quieter phone-call volume).
 - [ ] **Cache fixed audio in Convex storage** (once Convex is set up): fillers first, then word cards. An `audio { text, voice, storageId }` table; the server serves a stored recording if it has one, otherwise makes it once with Google and saves it. Ale's live replies stay live. (Vercel Blob is the backup option.)
 - [ ] **Feedback**: 👍/👎 on Ale's replies (saved with model, level, topic) and a "Comentarios" item in the ⋯ menu (type or speak).
 - [ ] Tag PostHog events with `app: "ingles"` (so the project can be shared).
