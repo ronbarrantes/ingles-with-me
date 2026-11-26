@@ -7,6 +7,9 @@ import { BotError, fetchSpeech } from "./api";
 import { setAudioSession } from "./audioSession";
 import { splitLang } from "./segments";
 
+/** In-app volume boost: off for now (see the note in Voice). */
+const BOOST = false;
+
 // A short silent WAV, played on the first tap so iPhones allow audio later.
 function silentWav() {
 	const samples = 1600; // 0.1 s at 16 kHz
@@ -43,6 +46,10 @@ export class Voice {
 
 	// Ale's voice goes through a compressor and a gain stage when possible:
 	// louder without crackling, like radio. Needs an audio engine started by a tap.
+	// TURNED OFF (BOOST = false): on iPhone the engine can be paused when the
+	// app switches between listening and speaking, and the first line came out
+	// silent. TODO: find a reliable way to make Ale louder on iPhone (see
+	// docs/TODO.md, "Volume on iPhone"). Google's +4 dB (VOICE_GAIN_DB) stays.
 	private ctx?: AudioContext;
 	private boosted?: HTMLAudioElement;
 
@@ -51,6 +58,7 @@ export class Voice {
 		this.audio ??= new Audio();
 		this.audio.src = silentWav();
 		void this.audio.play().catch(() => {});
+		if (!BOOST) return;
 		try {
 			if (!this.ctx) {
 				const Ctx =
