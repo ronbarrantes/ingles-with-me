@@ -7,6 +7,9 @@ import { BotError, fetchSpeech } from "./api";
 import { setAudioSession } from "./audioSession";
 import { splitLang } from "./segments";
 
+/** In-app volume boost: off for now (see the note in Voice). */
+const BOOST = false;
+
 // A short silent WAV, played on the first tap so iPhones allow audio later.
 function silentWav() {
 	const samples = 1600; // 0.1 s at 16 kHz
@@ -43,6 +46,10 @@ export class Voice {
 
 	// Ale's voice goes through a compressor and a gain stage when possible:
 	// louder without crackling, like radio. Needs an audio engine started by a tap.
+	// TURNED OFF (BOOST = false): on iPhone the engine can be paused when the
+	// app switches between listening and speaking, and the first line came out
+	// silent. TODO: find a reliable way to make Ale louder on iPhone (see
+	// docs/TODO.md, "Volume on iPhone"). Google's +4 dB (VOICE_GAIN_DB) stays.
 	private ctx?: AudioContext;
 	private boosted?: HTMLAudioElement;
 
@@ -51,6 +58,7 @@ export class Voice {
 		this.audio ??= new Audio();
 		this.audio.src = silentWav();
 		void this.audio.play().catch(() => {});
+		if (!BOOST) return;
 		try {
 			if (!this.ctx) {
 				const Ctx =
@@ -84,11 +92,24 @@ export class Voice {
 		}
 	}
 
-	/** The element to play through: boosted if its engine is running. */
+	/**
+	 * The element to play through: boosted only if its audio engine is really
+	 * running. iPhones pause the engine when switching between listening and
+	 * speaking; playing into a paused engine would be silent.
+	 */
 	private player() {
 		if (this.boosted && this.ctx?.state === "running") return this.boosted;
 		this.audio ??= new Audio();
 		return this.audio;
+	}
+
+	/** Try to wake the boost engine (briefly); the plain player is the fallback. */
+	private async wake() {
+		if (!this.ctx || this.ctx.state === "running") return;
+		await Promise.race([
+			this.ctx.resume().catch(() => {}),
+			new Promise((r) => setTimeout(r, 300)),
+		]);
 	}
 
 	// Short "Mm-hm" / "A ver…" clips, fetched once and played the moment the
@@ -176,18 +197,33 @@ export class Voice {
 		const asked = performance.now();
 		const blob = await fetchSpeech(text);
 		this.lastFetchMs = Math.round(performance.now() - asked);
+		await this.wake();
 		const url = URL.createObjectURL(blob);
-		const audio = this.player();
 		try {
 			await new Promise<void>((done, fail) => {
 				this.stopped = done;
-				audio.onended = () => done();
-				audio.onerror = () => fail(new Error("audio playback failed"));
-				audio.src = url;
-				audio
-					.play()
-					.then(() => onStart?.())
-					.catch(fail);
+				const playOn = (audio: HTMLAudioElement, started: boolean) => {
+					audio.onended = () => done();
+					audio.onerror = () => fail(new Error("audio playback failed"));
+					audio.src = url;
+					audio
+						.play()
+						.then(() => {
+							if (!started) onStart?.();
+							// Boost engine paused by the phone? Then it's silent:
+							// switch to the plain player right away.
+							if (audio === this.boosted)
+								setTimeout(() => {
+									if (this.ctx?.state !== "running") {
+										audio.pause();
+										this.audio ??= new Audio();
+										playOn(this.audio, true);
+									}
+								}, 250);
+						})
+						.catch(fail);
+				};
+				playOn(this.player(), false);
 			});
 		} finally {
 			this.stopped = undefined;
