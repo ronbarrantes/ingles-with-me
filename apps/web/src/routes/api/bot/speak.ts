@@ -2,10 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { checkPasscode } from "#/server/guard";
 import { reportError } from "#/server/telemetry";
-import { voiceLabel, voiceReady, voiceSpeak } from "#/server/voice";
+import { voiceLabel, voiceQuick, voiceReady, voiceSpeak } from "#/server/voice";
 
 // Ale's line → MP3 (or WAV when it mixes in Spanish). The page falls back to the phone's voice if this fails.
-const Body = z.object({ text: z.string().min(1).max(1200) });
+const Body = z.object({
+	text: z.string().min(1).max(1200),
+	/** Short stock phrases: fast Chirp voice in this language. */
+	quick: z.enum(["en", "es"]).optional(),
+});
 
 export const Route = createFileRoute("/api/bot/speak")({
 	server: {
@@ -19,7 +23,10 @@ export const Route = createFileRoute("/api/bot/speak")({
 				if (!parsed.success)
 					return Response.json({ error: "bad_request" }, { status: 400 });
 				try {
-					const { audio, type } = await voiceSpeak(parsed.data.text);
+					const { text, quick } = parsed.data;
+					const { audio, type } = quick
+						? await voiceQuick(text, quick)
+						: await voiceSpeak(text);
 					return new Response(audio, {
 						headers: {
 							"Content-Type": type,
