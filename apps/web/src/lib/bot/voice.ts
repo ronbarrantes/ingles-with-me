@@ -139,7 +139,7 @@ export class Voice {
 	/** Play a filler right away (if its clip is ready), without waiting for it to end. */
 	filler(line: string) {
 		const clip = this.clips.get(line);
-		if (clip) setAudioSession("playback");
+		if (clip && this.switchSession) setAudioSession("playback");
 		if (clip) {
 			const url = URL.createObjectURL(clip);
 			const audio = this.player();
@@ -157,6 +157,12 @@ export class Voice {
 		}
 	}
 
+	/**
+	 * Switch iPhones to loud "playback" while Ale talks (the mic is released
+	 * meanwhile). Off when the learner keeps the mic open all the time.
+	 */
+	switchSession = true;
+
 	/** How long the last server voice took to arrive, in ms (0 = phone voice). */
 	lastFetchMs = 0;
 
@@ -165,7 +171,7 @@ export class Voice {
 		this.lastFetchMs = 0;
 		await this.fillerDone; // let a "Mm-hm" finish first (it's short)
 		// Loud speaker while Ale talks (the mic is released meanwhile).
-		setAudioSession("playback");
+		if (this.switchSession) setAudioSession("playback");
 		if (this.useServer) {
 			try {
 				try {

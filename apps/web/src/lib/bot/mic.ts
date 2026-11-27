@@ -123,7 +123,50 @@ export class Mic {
 		this.speechMs = 0;
 	}
 
+	private lastChunkAt = 0;
+
+	/** The listening engine's state, for diagnostics. */
+	get engineState() {
+		return this.ctx?.state ?? "none";
+	}
+
+	/** Wait until sound chunks arrive (or give up after `ms`). */
+	private async flowing(ms: number) {
+		const since = performance.now();
+		while (performance.now() - since < ms) {
+			if (this.lastChunkAt > since) return true;
+			await new Promise((r) => setTimeout(r, 60));
+		}
+		return false;
+	}
+
+	/**
+	 * Make sure sound is really coming in. iPhones can leave the listening
+	 * engine paused after the mic was released and taken back: then the page
+	 * "listens" but hears nothing. Wake it; if that fails, rebuild it.
+	 * Returns false if it still can't hear (a tap usually fixes that).
+	 */
+	async ensureRunning(): Promise<boolean> {
+		if (!this.ctx) await this.open();
+		if (this.ctx && this.ctx.state !== "running")
+			await Promise.race([
+				this.ctx.resume().catch(() => {}),
+				new Promise((r) => setTimeout(r, 500)),
+			]);
+		if (await this.flowing(900)) return true;
+		// Rebuild the engine from scratch.
+		this.close();
+		try {
+			await this.open();
+			void this.ctx?.resume();
+		} catch {
+			return false;
+		}
+		return this.flowing(900);
+	}
+
 	private process(input: Float32Array, rate: number) {
+		this.lastChunkAt = performance.now();
 		if (!this.handlers) return;
 		const chunk = new Float32Array(input); // the buffer is reused by the browser
 		const ms = (chunk.length / rate) * 1000;

@@ -3,8 +3,10 @@
 What's next, roughly in order. Small items ship together in batches.
 
 ## Next batch
+- [ ] **Fillers while still talking**: "Ajá / hmm" plays on a mid-sentence pause, a cough or a kitchen noise (the mic ends a turn after about 1.1s of quiet). Play a filler only after a real stretch of speech (about 1.2s or more), consider a longer or adaptive end-of-turn wait, and track empty turns in PostHog.
+- [ ] **PostHog read access**: a `phx_` personal API key (read scopes), saved through the secure form, so Claude can pull stats. The first attempt was rejected (probably the `phc_` project token).
 - [ ] **Volume on iPhone**: Ale is still quieter than YouTube. The in-app boost (compressor + gain through Web Audio) is turned off (`BOOST = false` in `lib/bot/voice.ts`) because iOS can pause its engine and the first line came out silent. Ideas: a boost that only kicks in once the engine is confirmed running, louder source audio (`VOICE_GAIN_DB` up to 16), headphones tip, or native audio later (Capacitor).
-- [ ] **Microphone prompts on iPhone**: releasing and retaking the mic makes Safari ask every turn. Show a one-time Spanish tip (Safari: aA → Website Settings → Microphone → Allow), plus a "Mantener micrófono abierto" switch in the ⋯ menu (no prompts, but quieter phone-call volume).
+- [ ] **Microphone prompts on iPhone**: releasing and retaking the mic makes Safari ask every turn. Show a one-time Spanish tip (Safari: aA → Website Settings → Microphone → Allow). (The "Micrófono siempre abierto" switch is done.)
 - [ ] **Cache fixed audio in Convex storage** (once Convex is set up): fillers first, then word cards. An `audio { text, voice, storageId }` table; the server serves a stored recording if it has one, otherwise makes it once with Google and saves it. Ale's live replies stay live. (Vercel Blob is the backup option.)
 - [ ] **Feedback**: 👍/👎 on Ale's replies (saved with model, level, topic) and a "Comentarios" item in the ⋯ menu (type or speak).
 - [ ] Tag PostHog events with `app: "ingles"` (so the project can be shared).
