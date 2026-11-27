@@ -37,31 +37,35 @@ Be consistent: the same recording should get the same scores.`;
 
 // Scoring a short clip doesn't need deep reasoning, and thinking adds seconds
 // (and can use up the whole output budget, leaving an empty answer).
-// JUDGE_THINKING: minimal (default) | off (no thinking, if the model allows) |
-// low | medium | high | default (the model's own).
+// JUDGE_THINKING: off (default) | minimal | low | medium | high | default
+// (the model's own).
 const LEVELS: Record<string, ThinkingLevel> = {
 	minimal: ThinkingLevel.MINIMAL,
 	low: ThinkingLevel.LOW,
 	medium: ThinkingLevel.MEDIUM,
 	high: ThinkingLevel.HIGH,
 };
+// Starts at JUDGE_THINKING (default "off": scoring sounds needs no reasoning,
+// and thinking was about half of every turn's wait). If the model refuses a
+// setting, step down: off → minimal → the model's own default.
+let thinkingMode: string = process.env.JUDGE_THINKING ?? "off";
 const thinking = () => {
-	const want = process.env.JUDGE_THINKING ?? "minimal";
-	if (want === "off") return { thinkingBudget: 0 };
-	const lvl = LEVELS[want];
+	if (thinkingMode === "off") return { thinkingBudget: 0 };
+	const lvl = LEVELS[thinkingMode];
 	return lvl ? { thinkingLevel: lvl } : undefined;
 };
-// Models that don't take a thinking level get the call without it.
-let thinkingOk = true;
 
 export async function hear(model: string, wavBase64: string): Promise<Heard> {
 	try {
 		return await callOnce(model, wavBase64);
 	} catch (e) {
-		if (thinkingOk && /thinking/i.test(String(e))) {
-			thinkingOk = false;
-			console.warn("judge: model refused a thinking level; retrying without");
-			return callOnce(model, wavBase64);
+		if (/thinking/i.test(String(e)) && thinkingMode !== "default") {
+			const was = thinkingMode;
+			thinkingMode = was === "off" ? "minimal" : "default";
+			console.warn(
+				`judge: model refused thinking "${was}"; trying "${thinkingMode}"`,
+			);
+			return hear(model, wavBase64);
 		}
 		if (e instanceof EmptyAnswer) {
 			void reportError(e, { stage: "judge-empty", model });
@@ -81,7 +85,7 @@ interface Heard {
 }
 
 async function callOnce(model: string, wavBase64: string): Promise<Heard> {
-	const think = thinkingOk ? thinking() : undefined;
+	const think = thinking();
 	const res = await gemini().models.generateContent({
 		model,
 		contents: [
