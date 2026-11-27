@@ -36,6 +36,34 @@ export class Mic {
 	private quietMs = 0;
 	private speechMs = 0;
 	private noise = 0.005;
+	/** Step-by-step log of what the mic does, for diagnostics (PostHog). */
+	onStep?: (step: string, props?: Record<string, unknown>) => void;
+
+	private step(step: string, props?: Record<string, unknown>) {
+		try {
+			this.onStep?.(step, props);
+		} catch {
+			// Logging must never break the mic.
+		}
+	}
+
+	/** Log what the phone does to the mic on its own (interruptions, etc.). */
+	private watch(stream: MediaStream, reuse: boolean) {
+		const track = stream.getAudioTracks()[0];
+		if (!track) return;
+		const settings = track.getSettings?.() ?? {};
+		this.step("mic_open", {
+			reuse,
+			rate: this.ctx?.sampleRate,
+			track_rate: settings.sampleRate,
+			engine: this.ctx?.state,
+			muted: track.muted,
+			label: track.label.slice(0, 40),
+		});
+		track.onended = () => this.step("track_ended");
+		track.onmute = () => this.step("track_muted");
+		track.onunmute = () => this.step("track_unmuted");
+	}
 
 	private source?: MediaStreamAudioSourceNode;
 
@@ -61,6 +89,7 @@ export class Mic {
 			this.stream = await this.getStream();
 			this.source = this.ctx.createMediaStreamSource(this.stream);
 			this.source.connect(this.node);
+			this.watch(this.stream, true);
 			return;
 		}
 		this.stream = await this.getStream();
@@ -78,6 +107,8 @@ export class Mic {
 		node.connect(ctx.destination); // needed for processing to run; outputs silence
 		this.ctx = ctx;
 		this.node = node;
+		ctx.onstatechange = () => this.step("engine", { state: ctx.state });
+		this.watch(this.stream, false);
 	}
 
 	listen(handlers: MicHandlers) {
@@ -96,6 +127,7 @@ export class Mic {
 	 * iPhones play sound in "phone call" mode, much quieter.
 	 */
 	release() {
+		this.step("mic_release");
 		this.pause();
 		this.source?.disconnect();
 		this.source = undefined;
@@ -104,6 +136,7 @@ export class Mic {
 	}
 
 	close() {
+		if (this.ctx) this.step("mic_close");
 		this.pause();
 		this.node?.disconnect();
 		for (const t of this.stream?.getTracks() ?? []) t.stop();
@@ -164,16 +197,25 @@ export class Mic {
 				this.ctx.resume().catch(() => {}),
 				new Promise((r) => setTimeout(r, 500)),
 			]);
-		if (await this.flowing(900)) return true;
+		if (await this.flowing(900)) {
+			this.step("sound_ok");
+			return true;
+		}
 		// Rebuild the engine from scratch.
+		this.step("no_sound", { engine: this.ctx?.state });
 		this.close();
 		try {
 			await this.open();
 			void this.ctx?.resume();
-		} catch {
+		} catch (e) {
+			this.step("rebuild_failed", { error: String(e).slice(0, 80) });
 			return false;
 		}
-		return this.flowing(900);
+		const ok = await this.flowing(900);
+		this.step(ok ? "rebuild_ok" : "rebuild_no_sound", {
+			engine: this.ctx?.state,
+		});
+		return ok;
 	}
 
 	private rate = 48_000;
@@ -198,6 +240,7 @@ export class Mic {
 			ms: Math.round(total),
 			rate: this.rate,
 		};
+		this.step("clip", this.lastClip);
 		done.onTurn(toWavBase64(audio, this.rate), total);
 	}
 
@@ -242,6 +285,10 @@ export class Mic {
 			if (this.loud >= START_CHUNKS) {
 				this.speaking = true;
 				this.chunks = [...this.preroll];
+				this.step("speech_start", {
+					noise: Math.round(this.noise * 10000) / 10000,
+					rms: Math.round(rms * 10000) / 10000,
+				});
 				this.handlers.onSpeechStart?.();
 			}
 			return;

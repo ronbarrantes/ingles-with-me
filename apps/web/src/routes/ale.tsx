@@ -49,6 +49,12 @@ import { Voice } from "#/lib/bot/voice";
 import { useStore } from "#/lib/store";
 
 // Hidden for now: not linked anywhere, not indexed.
+
+/** One step of the mic's life, for diagnosing "stuck" from PostHog. */
+function micStep(step: string, props?: Record<string, unknown>) {
+	track("mic_step", { step, page: document.visibilityState, ...props });
+}
+
 export const Route = createFileRoute("/ale")({
 	head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
 	component: Bot,
@@ -146,6 +152,12 @@ function Bot() {
 	const micChoiceRef = useRef<"on" | "off" | null>(null);
 	const headphonesRef = useRef(false);
 	const stallsRef = useRef(0);
+	// Log the page being hidden/shown: iPhones change the mic when that happens.
+	useEffect(() => {
+		const onVis = () => micStep(`page_${document.visibilityState}`);
+		document.addEventListener("visibilitychange", onVis);
+		return () => document.removeEventListener("visibilitychange", onVis);
+	}, []);
 	/** Unusable clips in a row (the judge heard nothing). */
 	const emptiesRef = useRef(0);
 	/** Take the mic again before the next listen. */
@@ -485,6 +497,7 @@ function Bot() {
 	// One spoken turn: record until she stops, have the judge hear it, then ask Ale.
 	async function listen() {
 		if (!mic.current || !handsFreeRef.current) return;
+		micStep("listen", { fresh: freshMicRef.current, stuck: stuckRef.current });
 		if (stuckRef.current) {
 			stuckRef.current = false;
 			setMode("idle");
@@ -599,7 +612,10 @@ function Bot() {
 			// Every «Hablar» tap starts a fresh listening engine: after the page
 			// sat idle, an iPhone can hand back an old one that garbles sound.
 			mic.current?.close();
-			mic.current ??= new Mic();
+			if (!mic.current) {
+				mic.current = new Mic();
+				mic.current.onStep = micStep;
+			}
 			await mic.current.open();
 			await checkHeadphones(); // device names are visible now
 		} catch {
