@@ -24,6 +24,7 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] **Real voice for word cards**: generate each word and its example sentence once with Google TTS (Chirp), cached in Convex storage (see Next batch), about $0.10 one time. Use them in cards, Palabras and Repasar; keep the phone's voice as the offline fallback. They can ship with the app, or live in Convex storage later.
 
 ## Speed and cost (check PostHog first)
+- [ ] **The judge is the bottleneck** (~5s of ~8.5s per turn, per PostHog). gemini-4-hydrogen ignores thinking "off". Try a Flash-Lite judge (`JUDGE=google:gemini-2.5-flash-lite`, `JUDGE_THINKING=off`) and compare scoring quality; or split the judge into a quick transcription (Ale answers right away) plus detailed scores in parallel (they feed the next turn).
 - [ ] Look at a day of `ale_turn` timings and the judge's thinking tokens ("pensó N").
 - [ ] Try `JUDGE_THINKING=off`, and/or a cheaper judge model (Flash-Lite).
 - [ ] Try Haiku as the teacher (`TEACHER=anthropic:claude-haiku-5-5`); compare against Sonnet.
