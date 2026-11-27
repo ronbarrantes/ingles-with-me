@@ -3,6 +3,7 @@
 What's next, roughly in order. Small items ship together in batches.
 
 ## Next batch
+- [x] **Fillers at natural moments**: wait about 0.8s after they stop; skip the filler if Ale's reply is already about to play; never play one right before the reply.
 - [ ] **Bluetooth headphones**: switching the iPhone audio session every turn (playback ↔ play-and-record) can make Bluetooth headphones drop or reconnect. Detect headphones (device labels like "AirPods" once the mic is allowed, and the `devicechange` event) and turn on "Micrófono siempre abierto" automatically.
 - [x] **Fillers while still talking** (filler only after ≥1.2s of speech; longer waits for beginners and after "and/the/y…"): "Ajá / hmm" plays on a mid-sentence pause, a cough or a kitchen noise (the mic ends a turn after about 1.1s of quiet). Play a filler only after a real stretch of speech (about 1.2s or more), consider a longer or adaptive end-of-turn wait, and track empty turns in PostHog.
 - [ ] **PostHog read access**: a `phx_` personal API key (read scopes), saved through the secure form, so Claude can pull stats. The first attempt was rejected (probably the `phc_` project token).
@@ -23,6 +24,7 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] **Real voice for word cards**: generate each word and its example sentence once with Google TTS (Chirp), cached in Convex storage (see Next batch), about $0.10 one time. Use them in cards, Palabras and Repasar; keep the phone's voice as the offline fallback. They can ship with the app, or live in Convex storage later.
 
 ## Speed and cost (check PostHog first)
+- [ ] **The judge is the bottleneck** (~5s of ~8.5s per turn, per PostHog). gemini-4-hydrogen ignores thinking "off". Try a Flash-Lite judge (`JUDGE=google:gemini-2.5-flash-lite`, `JUDGE_THINKING=off`) and compare scoring quality; or split the judge into a quick transcription (Ale answers right away) plus detailed scores in parallel (they feed the next turn).
 - [ ] Look at a day of `ale_turn` timings and the judge's thinking tokens ("pensó N").
 - [ ] Try `JUDGE_THINKING=off`, and/or a cheaper judge model (Flash-Lite).
 - [ ] Try Haiku as the teacher (`TEACHER=anthropic:claude-haiku-5-5`); compare against Sonnet.

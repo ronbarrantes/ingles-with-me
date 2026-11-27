@@ -37,7 +37,7 @@ Be consistent: the same recording should get the same scores.`;
 
 // Scoring a short clip doesn't need deep reasoning, and thinking adds seconds
 // (and can use up the whole output budget, leaving an empty answer).
-// JUDGE_THINKING: off (default) | minimal | low | medium | high | default
+// JUDGE_THINKING: minimal (default) | off | low | medium | high | default
 // (the model's own).
 const LEVELS: Record<string, ThinkingLevel> = {
 	minimal: ThinkingLevel.MINIMAL,
@@ -45,10 +45,12 @@ const LEVELS: Record<string, ThinkingLevel> = {
 	medium: ThinkingLevel.MEDIUM,
 	high: ThinkingLevel.HIGH,
 };
-// Starts at JUDGE_THINKING (default "off": scoring sounds needs no reasoning,
-// and thinking was about half of every turn's wait). If the model refuses a
-// setting, step down: off → minimal → the model's own default.
-let thinkingMode: string = process.env.JUDGE_THINKING ?? "off";
+// Starts at JUDGE_THINKING (default "minimal"). Note: gemini-4-hydrogen
+// ignores "off" (thinkingBudget 0) and thought MORE (~500 tokens vs ~350 on
+// minimal, per PostHog), so minimal is the default. "off" suits models that
+// honor a zero budget (e.g. Flash-Lite). If the model refuses a setting, step
+// down: off → minimal → the model's own default.
+let thinkingMode: string = process.env.JUDGE_THINKING ?? "minimal";
 const thinking = () => {
 	if (thinkingMode === "off") return { thinkingBudget: 0 };
 	const lvl = LEVELS[thinkingMode];
