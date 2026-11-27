@@ -97,6 +97,17 @@ const FILLERS = {
 };
 const FILLER_CHANCE = 0.5;
 
+// How long a silence ends their turn, by English level (ms).
+const END_SILENCE_BY_LEVEL = {
+	1: 2_000,
+	2: 1_700,
+	3: 1_400,
+	4: 1_100,
+} as const;
+// A sentence ending like this isn't finished: wait a little longer.
+const UNFINISHED =
+	/\b(and|or|but|the|a|an|to|of|with|for|in|on|at|my|your|is|are|because|so|then|y|o|pero|el|la|los|las|un|una|de|con|en|mi|porque|que)$/i;
+
 const scoreColor = (n: number) =>
 	n >= 75 ? "#3BB273" : n >= 60 ? "#F3A712" : "#E4572E";
 
@@ -117,6 +128,8 @@ function Bot() {
 	// Their turn is being checked: show their bubble right away, text comes next.
 	const [pending, setPending] = useState(false);
 	const recentFillers = useRef<string[]>([]);
+	// The phone's live caption (hidden): used to notice "…rice and" pauses.
+	const lastCaption = useRef("");
 	const [tip, setTip] = useState<"first" | "noise" | null>(null);
 	const noiseTipShown = useRef(false);
 	const [typed, setTyped] = useState("");
@@ -361,8 +374,15 @@ function Bot() {
 		setVoiceLevel(0);
 		// The phone's live caption only hears English (Spanish comes out garbled),
 		// so it isn't shown; it's kept as the fallback text if the judge fails.
-		captions.current?.start(() => {});
+		lastCaption.current = "";
+		captions.current?.start((t) => {
+			lastCaption.current = t;
+		});
+		const lvl = levelRef.current ? effective(levelRef.current) : 1;
 		mic.current.listen({
+			// Beginners pause more mid-sentence: give them more time.
+			endSilenceMs: END_SILENCE_BY_LEVEL[lvl],
+			soundsUnfinished: () => UNFINISHED.test(lastCaption.current.trim()),
 			onLevel: (v) => {
 				setVoiceLevel(v);
 				// A loud room (boiling water, a fan): suggest headphones, once per visit.
@@ -371,13 +391,14 @@ function Bot() {
 					setTip("noise");
 				}
 			},
-			onTurn: async (wav) => {
+			onTurn: async (wav, speechMs) => {
 				const spokeAt = performance.now();
 				const caption = captions.current?.stop() ?? "";
 				// Right away: let go of the mic, say "Mm-hm", show their bubble.
 				if (!keepMicRef.current) mic.current?.release();
 				setPending(true);
-				sayFiller();
+				// A filler only after real speech, not a cough or a short noise.
+				if (speechMs >= 1_200) sayFiller();
 				let attempt: Attempt | null = null;
 				if (statusRef.current?.judge.ready) {
 					setMode("hearing");
