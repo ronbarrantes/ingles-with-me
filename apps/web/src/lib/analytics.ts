@@ -3,19 +3,37 @@
 // "ph-no-capture", so session replays and autocapture skip them.
 // No VITE_POSTHOG_KEY, no tracking.
 
-import posthog from "posthog-js";
+import type { PostHog } from "posthog-js";
 
 const KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
 const HOST =
 	(import.meta.env.VITE_POSTHOG_HOST as string | undefined) ??
 	"https://us.i.posthog.com";
 
+// PostHog is big, so it loads after the page is up (its own chunk). Events
+// sent before it's ready wait in a small queue.
+let posthog: PostHog | undefined;
 let started = false;
+const queue: ((p: PostHog) => void)[] = [];
+
+const withPostHog = (fn: (p: PostHog) => void) => {
+	if (!started) return;
+	if (posthog) fn(posthog);
+	else if (queue.length < 50) queue.push(fn);
+};
 
 export function startAnalytics() {
 	if (started || !KEY || typeof window === "undefined") return;
 	started = true;
-	posthog.init(KEY, {
+	void import("posthog-js").then(({ default: ph }) => {
+		init(ph);
+		posthog = ph;
+		for (const fn of queue.splice(0)) fn(ph);
+	});
+}
+
+function init(posthog: PostHog) {
+	posthog.init(KEY as string, {
 		api_host: HOST,
 		person_profiles: "identified_only",
 		capture_pageview: "history_change",
@@ -27,11 +45,11 @@ export function startAnalytics() {
 }
 
 export function track(event: string, props?: Record<string, unknown>) {
-	if (started) posthog.capture(event, props);
+	withPostHog((p) => p.capture(event, props));
 }
 
 export function trackError(error: unknown, props?: Record<string, unknown>) {
-	if (started) posthog.captureException(error, props);
+	withPostHog((p) => p.captureException(error, props));
 }
 
 const DEVICE = "iwm:device";
