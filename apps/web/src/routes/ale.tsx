@@ -865,6 +865,20 @@ function Bot() {
 			)}
 
 			<div className="border-t-2 border-line px-5 pt-3 pb-4">
+				{mode === "listening" && (
+					<button
+						type="button"
+						onClick={() => {
+							if (!mic.current?.finish())
+								setNote(
+									"Todavía no te escuché. Habla y luego toca «Ya terminé».",
+								);
+						}}
+						className="mb-2 h-12 w-full rounded-sm border-2 border-ink bg-card font-bold"
+					>
+						✋ Ya terminé
+					</button>
+				)}
 				{stalled && (
 					<button
 						type="button"

@@ -170,8 +170,26 @@ export class Mic {
 		return this.flowing(900);
 	}
 
+	private rate = 48_000;
+
+	/**
+	 * "✋ Ya terminé": end the turn now (noisy rooms can keep the mic from
+	 * hearing the pause). Returns false if no speech was heard yet.
+	 */
+	finish(): boolean {
+		const done = this.handlers;
+		if (!done || !this.speaking || this.speechMs < MIN_SPEECH_MS) return false;
+		const audio = this.chunks;
+		const total = this.speechMs;
+		const rate = this.rate;
+		this.pause();
+		done.onTurn(toWavBase64(audio, rate), total);
+		return true;
+	}
+
 	private process(input: Float32Array, rate: number) {
 		this.lastChunkAt = performance.now();
+		this.rate = rate;
 		if (!this.handlers) return;
 		const chunk = new Float32Array(input); // the buffer is reused by the browser
 		const ms = (chunk.length / rate) * 1000;
