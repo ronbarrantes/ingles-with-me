@@ -41,7 +41,8 @@ function init(posthog: PostHog) {
 		session_recording: { maskAllInputs: true },
 	});
 	const id = deviceId();
-	if (id) posthog.register({ device: id });
+	// "app" lets several apps share one PostHog project.
+	posthog.register({ app: "ingles", ...(id && { device: id }) });
 }
 
 export function track(event: string, props?: Record<string, unknown>) {

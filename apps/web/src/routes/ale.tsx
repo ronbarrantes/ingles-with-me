@@ -12,6 +12,7 @@ import {
 	setPasscode,
 } from "#/lib/bot/api";
 import { Captions, captionsAvailable } from "#/lib/bot/captions";
+import { hasHeadphones, onDevicesChange } from "#/lib/bot/headphones";
 import { getLearner, setLearner } from "#/lib/bot/learner";
 import {
 	afterTurn,
@@ -66,6 +67,7 @@ const FACE: Record<Mode, { emoji: string; label: string }> = {
 
 const TIP_KEY = "iwm:tip-headphones";
 const KEEP_MIC_KEY = "iwm:keep-mic";
+const IDLE_PAUSE_MS = 60_000;
 
 // Said right after they stop talking, about half the time (clips cached on
 // the phone, fast voice): Spanish for levels 1–2, English for 3–4.
@@ -126,6 +128,27 @@ function Bot() {
 	// stalls), but iPhones play Ale more quietly.
 	const [keepMic, setKeepMic] = useState(false);
 	const keepMicRef = useRef(false);
+	// The learner's own choice ("on"/"off"), or null = automatic: keep the mic
+	// open when headphones are connected, or after the mic got stuck twice.
+	const [micChoice, setMicChoice] = useState<"on" | "off" | null>(null);
+	const micChoiceRef = useRef<"on" | "off" | null>(null);
+	const headphonesRef = useRef(false);
+	const stallsRef = useRef(0);
+	const applyMicMode = () => {
+		const c = micChoiceRef.current;
+		const keep =
+			c === "on" ||
+			(c === null && (headphonesRef.current || stallsRef.current >= 2));
+		keepMicRef.current = keep;
+		setKeepMic(keep);
+		if (voice.current) voice.current.switchSession = !keep;
+	};
+	const checkHeadphones = async () => {
+		headphonesRef.current = await hasHeadphones();
+		applyMicMode();
+	};
+	// Auto-pause after a minute with nobody talking (mic off, saves battery).
+	const idleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 	// Their turn is being checked: show their bubble right away, text comes next.
 	const [pending, setPending] = useState(false);
 	const recentFillers = useRef<string[]>([]);
@@ -214,6 +237,7 @@ function Bot() {
 		if (mastered.length) setNote(`🎯 ¡Ya dices bien: ${mastered.join(", ")}!`);
 	};
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: load once on mount
 	useEffect(() => {
 		learnerRef.current = getLearner();
 		setLearnerState(learnerRef.current);
@@ -221,8 +245,11 @@ function Bot() {
 		setHard(hardRef.current);
 		setInterests(getInterests());
 		try {
-			keepMicRef.current = localStorage.getItem(KEEP_MIC_KEY) === "1";
-			setKeepMic(keepMicRef.current);
+			const saved = localStorage.getItem(KEEP_MIC_KEY);
+			micChoiceRef.current =
+				saved === "1" ? "on" : saved === "0" ? "off" : null;
+			setMicChoice(micChoiceRef.current);
+			applyMicMode();
 		} catch {
 			// Private mode: default.
 		}
@@ -371,6 +398,8 @@ function Bot() {
 		// Is sound really coming in? (iPhones can leave the engine paused.)
 		if (!(await mic.current.ensureRunning())) {
 			track("mic_stall", { state: mic.current.engineState });
+			stallsRef.current += 1;
+			applyMicMode(); // after two stalls, keep the mic open for this visit
 			setMode("idle");
 			setStalled(true);
 			return;
@@ -385,7 +414,16 @@ function Bot() {
 			lastCaption.current = t;
 		});
 		const lvl = levelRef.current ? effective(levelRef.current) : 1;
+		clearTimeout(idleTimer.current);
+		idleTimer.current = setTimeout(() => {
+			if (handsFreeRef.current) {
+				pause();
+				setNote("Pausé porque no escuché nada. Toca «Hablar» para seguir.");
+				track("ale_auto_pause");
+			}
+		}, IDLE_PAUSE_MS);
 		mic.current.listen({
+			onSpeechStart: () => clearTimeout(idleTimer.current),
 			// Beginners pause more mid-sentence: give them more time.
 			endSilenceMs: END_SILENCE_BY_LEVEL[lvl],
 			soundsUnfinished: () => UNFINISHED.test(lastCaption.current.trim()),
@@ -488,6 +526,7 @@ function Bot() {
 		try {
 			mic.current ??= new Mic();
 			await mic.current.open();
+			await checkHeadphones(); // device names are visible now
 		} catch {
 			mic.current = null;
 			setError(
@@ -521,6 +560,7 @@ function Bot() {
 	};
 
 	const pause = () => {
+		clearTimeout(idleTimer.current);
 		setPending(false);
 		setStalled(false);
 		handsFreeRef.current = false;
@@ -602,8 +642,12 @@ function Bot() {
 		void start();
 	};
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: listen once
+	useEffect(() => onDevicesChange(() => void checkHeadphones()), []);
+
 	useEffect(
 		() => () => {
+			clearTimeout(idleTimer.current);
 			handsFreeRef.current = false;
 			mic.current?.close();
 			captions.current?.stop();
@@ -803,19 +847,38 @@ function Bot() {
 						/>
 						<MenuItem
 							onClick={() => {
-								const next = !keepMicRef.current;
-								keepMicRef.current = next;
-								setKeepMic(next);
-								if (voice.current) voice.current.switchSession = !next;
+								const next = keepMicRef.current ? "off" : "on";
+								micChoiceRef.current = next;
+								setMicChoice(next);
+								applyMicMode();
 								try {
-									localStorage.setItem(KEEP_MIC_KEY, next ? "1" : "0");
+									localStorage.setItem(KEEP_MIC_KEY, next === "on" ? "1" : "0");
 								} catch {
 									// Private mode.
 								}
 							}}
-							label={`🎙️ Micrófono siempre abierto: ${keepMic ? "sí" : "no"}`}
-							sub="Sin avisos ni cortes, pero Ale se oye más bajo (mejor con audífonos)"
+							label={`🎙️ Micrófono siempre abierto: ${keepMic ? "sí" : "no"}${micChoice ? "" : " (automático)"}`}
+							sub="Sí: sin avisos ni cortes, pero más bajo. Se activa solo con audífonos."
 						/>
+						{micChoice && (
+							<MenuItem
+								onClick={() => {
+									micChoiceRef.current = null;
+									setMicChoice(null);
+									applyMicMode();
+									try {
+										localStorage.removeItem(KEEP_MIC_KEY);
+									} catch {
+										// Private mode.
+									}
+								}}
+								label="↩︎ Micrófono en automático"
+							/>
+						)}
+						<p className="px-3 py-2 text-xs text-muted">
+							🔒 El micrófono solo escucha mientras hablas con Ale. No guardamos
+							tu voz.
+						</p>
 						{levelState && (
 							<LevelRow
 								state={levelState}
@@ -871,12 +934,12 @@ function Bot() {
 						onClick={() => {
 							if (!mic.current?.finish())
 								setNote(
-									"Todavía no te escuché. Habla y luego toca «Ya terminé».",
+									"Todavía no te escuché. Habla y luego toca «Terminé de hablar».",
 								);
 						}}
 						className="mb-2 h-12 w-full rounded-sm border-2 border-ink bg-card font-bold"
 					>
-						✋ Ya terminé
+						✓ Terminé de hablar
 					</button>
 				)}
 				{stalled && (
