@@ -5,9 +5,8 @@ import { track } from "#/lib/analytics";
 import {
 	BotError,
 	checkSavedPasscode,
-	fetchHear,
-	fetchReply,
 	fetchStatus,
+	fetchTurn,
 	getPasscode,
 	setPasscode,
 } from "#/lib/bot/api";
@@ -66,6 +65,19 @@ const FACE: Record<Mode, { emoji: string; label: string }> = {
 };
 
 const TIP_KEY = "iwm:tip-headphones";
+
+type TurnRequest =
+	| { kind: "open" }
+	| { kind: "typed"; text: string }
+	| { kind: "spoken"; wav: string; caption: string };
+
+/** Ale's voice arrives inside the turn's stream as base64. */
+function base64Blob(b64: string, mime: string) {
+	const bin = atob(b64);
+	const bytes = new Uint8Array(bin.length);
+	for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+	return new Blob([bytes], { type: mime });
+}
 const KEEP_MIC_KEY = "iwm:keep-mic";
 const IDLE_PAUSE_MS = 60_000;
 
@@ -291,13 +303,20 @@ function Bot() {
 	const addCost = (m: Meta) => setSpent((s) => s + (m.costUsd ?? 0));
 
 	// Ask Ale for the next line (latest = null opens the conversation), then say it.
-	async function askAle(latest: Attempt | null, spokeAt?: number) {
+	/**
+	 * One turn through /api/bot/turn: Ale opens, answers typed text, or hears
+	 * a recording. The server streams back what they said (with scores),
+	 * Ale's reply and Ale's voice; each shows up as soon as it arrives.
+	 */
+	async function askAle(input: TurnRequest, spokeAt?: number) {
 		if (busy.current) return;
 		busy.current = true;
 		const sentAt = performance.now();
 		setError("");
 		const mine = convo.current;
 		const stale = () => mine !== convo.current;
+		let latest: Attempt | null = null;
+		let pushedLearner = false;
 		try {
 			const history = turnsRef.current;
 			// A new conversation: count it (the very first one starts in Spanish).
@@ -305,23 +324,82 @@ function Bot() {
 			const first = lvl.chats === 0;
 			if (history.length === 0) lvl = { ...lvl, chats: lvl.chats + 1 };
 			saveLevelState(lvl);
-			if (latest) pushTurn({ role: "learner", attempt: latest });
-			setPending(false);
-			setMode("thinking");
-			const res = await fetchReply(
-				topicRef.current,
-				history,
-				latest,
-				learnerRef.current,
-				hardRef.current.slice(0, 8),
-				topicRef.current === "libre" || topicRef.current === "hard"
-					? []
-					: focusWords(wordsRef.current, topicRef.current),
-				{ value: effective(lvl), first: first && history.length === 0 },
+			if (input.kind === "typed") {
+				latest = { text: input.text };
+				pushTurn({ role: "learner", attempt: latest });
+				pushedLearner = true;
+			}
+			setMode(input.kind === "spoken" ? "hearing" : "thinking");
+
+			let reply: TutorReply | null = null;
+			let replyMeta: Meta | null = null;
+			let audio: Blob | null | undefined;
+			let voiceMs = 0;
+			let empty = false;
+			let failed: BotError | null = null;
+			await fetchTurn(
+				{
+					topic: topicRef.current,
+					history,
+					learner: learnerRef.current,
+					hard: hardRef.current.slice(0, 8),
+					focus:
+						topicRef.current === "libre" || topicRef.current === "hard"
+							? []
+							: focusWords(wordsRef.current, topicRef.current),
+					level: {
+						value: effective(lvl),
+						first: first && history.length === 0,
+					},
+					...(input.kind === "spoken" && {
+						audio: input.wav,
+						caption: input.caption,
+					}),
+					...(input.kind === "typed" && { text: input.text }),
+				},
+				(e) => {
+					if (stale()) return;
+					if (e.type === "heard") {
+						latest = e.attempt;
+						noteScores(e.attempt);
+						timingRef.current = { ...timingRef.current, judge: e.meta };
+						setTiming((t) => ({ ...t, judge: e.meta }));
+						addCost(e.meta);
+						pushTurn({ role: "learner", attempt: e.attempt });
+						pushedLearner = true;
+						setPending(false);
+						setMode("thinking");
+						if (e.judgeFailed)
+							setNote("No pude revisar tu pronunciación esta vez.");
+					} else if (e.type === "empty") {
+						empty = true;
+					} else if (e.type === "reply") {
+						reply = e.reply;
+						replyMeta = e.meta;
+					} else if (e.type === "voice") {
+						audio = base64Blob(e.audio, e.mime);
+						voiceMs = e.ms;
+					} else if (e.type === "voice_unavailable") {
+						audio = null;
+					} else if (e.type === "error") {
+						failed = new BotError(e.code, [], e.message);
+					}
+				},
 			);
 			if (stale()) return;
+			if (empty) {
+				setPending(false);
+				track("ale_empty_turn", {
+					judged: Boolean(statusRef.current?.judge.ready),
+				});
+				return;
+			}
+			if (failed) throw failed;
+			if (!reply || !replyMeta) throw new BotError("no_reply");
+			const r = reply as TutorReply;
+			const meta = replyMeta as Meta;
 			// Adjust the English level from this turn and the teacher's read of it.
-			if (latest) saveLevelState(afterTurn(lvl, latest, res.reply.pace));
+			if (latest) saveLevelState(afterTurn(lvl, latest, r.pace));
 			// Don't repeat new-word chips already shown in this chat.
 			const shown = new Set(
 				turnsRef.current.flatMap((t) =>
@@ -330,46 +408,48 @@ function Bot() {
 						: [],
 				),
 			);
-			res.reply.new_words = res.reply.new_words.filter(
-				(w) => !shown.has(w.en.toLowerCase()),
-			);
-			// She told Ale her name (or fixed its spelling): remember it on this phone.
-			if (res.reply.learner_name?.name) rememberName(res.reply.learner_name);
-			pushTurn({ role: "tutor", reply: res.reply });
-			setTiming((t) => ({ ...t, teacher: res.meta }));
-			addCost(res.meta);
+			r.new_words = r.new_words.filter((w) => !shown.has(w.en.toLowerCase()));
+			// They told Ale their name (or fixed its spelling): remember it on this phone.
+			if (r.learner_name?.name) rememberName(r.learner_name);
+			pushTurn({ role: "tutor", reply: r });
+			setTiming((t) => ({ ...t, teacher: meta }));
+			addCost(meta);
 			// Let go of the mic while Ale talks: with a mic open, iPhones play
 			// sound in "phone call" mode, very quietly. It reopens to listen.
 			if (!keepMicRef.current) mic.current?.release();
 			replying.current = true;
 			setMode("speaking");
 			const judgeMeta = timingRef.current.judge;
-			await voice.current?.speak(res.reply.say, () => {
-				const voiceMs = voice.current?.lastFetchMs ?? 0;
-				setTiming((t) => ({ ...t, voiceMs }));
-				track("ale_turn", {
-					topic: topicRef.current,
-					typed: spokeAt === undefined,
-					judge_ms: spokeAt !== undefined ? judgeMeta?.ms : undefined,
-					judge_thoughts:
-						spokeAt !== undefined ? judgeMeta?.thoughtTokens : undefined,
-					teacher_ms: res.meta.ms,
-					teacher_model: res.meta.model,
-					level: levelRef.current ? effective(levelRef.current) : undefined,
-					voice_ms: voiceMs,
-					// From the end of her speech (or the send tap) to Ale's first sound.
-					total_ms: Math.round(performance.now() - (spokeAt ?? sentAt)),
-				});
-			});
+			await voice.current?.speak(
+				r.say,
+				() => {
+					setTiming((t) => ({ ...t, voiceMs }));
+					track("ale_turn", {
+						via: "turn",
+						topic: topicRef.current,
+						typed: spokeAt === undefined,
+						judge_ms: spokeAt !== undefined ? judgeMeta?.ms : undefined,
+						judge_thoughts:
+							spokeAt !== undefined ? judgeMeta?.thoughtTokens : undefined,
+						teacher_ms: meta.ms,
+						teacher_model: meta.model,
+						level: levelRef.current ? effective(levelRef.current) : undefined,
+						voice_ms: voiceMs,
+						// From the end of their speech (or the send tap) to Ale's first sound.
+						total_ms: Math.round(performance.now() - (spokeAt ?? sentAt)),
+					});
+				},
+				audio,
+			);
 		} catch (e) {
 			setPending(false);
 			if (stale()) return;
-			// Don't leave her message hanging without a reply; typed text goes back in the box.
-			if (latest) {
+			// Don't leave their message hanging without a reply; typed text goes back in the box.
+			if (pushedLearner) {
 				turnsRef.current = turnsRef.current.slice(0, -1);
 				setTurns(turnsRef.current);
-				if (!latest.words) setTyped(latest.text);
 			}
+			if (input.kind === "typed") setTyped(input.text);
 			handleError(e);
 		} finally {
 			replying.current = false;
@@ -449,45 +529,7 @@ function Bot() {
 					setTimeout(() => {
 						if (turnCount.current === turn && !replying.current) sayFiller();
 					}, FILLER_DELAY_MS);
-				let attempt: Attempt | null = null;
-				if (statusRef.current?.judge.ready) {
-					setMode("hearing");
-					try {
-						const res = await fetchHear(wav, caption);
-						attempt = res.attempt;
-						noteScores(attempt);
-						timingRef.current = { ...timingRef.current, judge: res.meta };
-						setTiming((t) => ({ ...t, judge: res.meta }));
-						addCost(res.meta);
-					} catch (e) {
-						// Passcode/config problems stop the page; a judge hiccup doesn't.
-						if (
-							e instanceof BotError &&
-							(e.code === "wrong_passcode" || e.code === "not_configured")
-						)
-							handleError(e);
-						else {
-							console.warn("judge failed", e);
-							setNote(
-								e instanceof BotError && e.code === "timeout"
-									? "La revisión tardó mucho; seguimos sin puntaje esta vez."
-									: "No pude revisar tu pronunciación esta vez.",
-							);
-						}
-					}
-				}
-				// No judge (or it failed): use the live caption, without scores.
-				if (!attempt && caption) attempt = { text: caption, lang: "en" };
-				if (!attempt?.text.trim()) {
-					setPending(false);
-					track("ale_empty_turn", {
-						judged: Boolean(statusRef.current?.judge.ready),
-					});
-					setMode("idle");
-					if (handsFreeRef.current) void listen();
-					return;
-				}
-				void askAle(attempt, spokeAt);
+				void askAle({ kind: "spoken", wav, caption }, spokeAt);
 			},
 		});
 	}
@@ -553,7 +595,7 @@ function Bot() {
 		} catch {
 			// The screen may dim; the conversation still works.
 		}
-		if (turnsRef.current.length === 0) await askAle(null);
+		if (turnsRef.current.length === 0) await askAle({ kind: "open" });
 		else void listen();
 		// After Ale's first line, so the clips never slow it down.
 		void voice.current?.prefetch(fillerLines());
@@ -583,7 +625,7 @@ function Bot() {
 		setTyped("");
 		mic.current?.pause();
 		captions.current?.stop();
-		void askAle({ text });
+		void askAle({ kind: "typed", text });
 	};
 
 	// From the hard-words list: ask Ale to work on one word.
@@ -594,7 +636,7 @@ function Bot() {
 		voice.current.unlock();
 		mic.current?.pause();
 		captions.current?.stop();
-		void askAle({ text: `Quiero practicar "${word}".`, lang: "es" });
+		void askAle({ kind: "typed", text: `Quiero practicar "${word}".` });
 	};
 
 	// Start over: drop the transcript and any reply still on its way.

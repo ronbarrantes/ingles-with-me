@@ -166,8 +166,12 @@ export class Voice {
 	/** How long the last server voice took to arrive, in ms (0 = phone voice). */
 	lastFetchMs = 0;
 
-	/** Speak a line; `onStart` fires when sound starts (for timing). */
-	async speak(text: string, onStart?: () => void) {
+	/**
+	 * Speak a line; `onStart` fires when sound starts (for timing).
+	 * `ready`: the audio already fetched with the turn (/api/bot/turn), or
+	 * null if the server had none (then the phone's voice speaks).
+	 */
+	async speak(text: string, onStart?: () => void, ready?: Blob | null) {
 		this.lastFetchMs = 0;
 		await this.fillerDone; // let a "Mm-hm" finish first (it's short)
 		// Loud speaker while Ale talks (the mic is released meanwhile).
@@ -177,7 +181,14 @@ export class Voice {
 			setAudioSession("playback");
 			await new Promise((r) => setTimeout(r, 150));
 		}
-		if (this.useServer) {
+		if (ready) {
+			try {
+				return await this.playBlob(ready, onStart);
+			} catch (e) {
+				trackError(e, { stage: "voice-play" });
+				track("voice_fallback");
+			}
+		} else if (this.useServer && ready === undefined) {
 			try {
 				try {
 					return await this.playServer(text, onStart);
@@ -208,6 +219,10 @@ export class Voice {
 		const asked = performance.now();
 		const blob = await fetchSpeech(text);
 		this.lastFetchMs = Math.round(performance.now() - asked);
+		await this.playBlob(blob, onStart);
+	}
+
+	private async playBlob(blob: Blob, onStart?: () => void) {
 		await this.wake();
 		const url = URL.createObjectURL(blob);
 		try {

@@ -9,6 +9,7 @@ import type {
 	ReplyResponse,
 	Topic,
 	Turn,
+	TurnEvent,
 } from "./types";
 
 const KEY = "iwm:bot-passcode";
@@ -117,3 +118,73 @@ export const fetchSpeech = async (
 	quick?: "en" | "es",
 ): Promise<Blob> =>
 	(await post("/api/bot/speak", { text, quick }, TIMEOUT.voice)).blob();
+
+export interface TurnBody {
+	topic: Topic;
+	history: Turn[];
+	audio?: string;
+	caption?: string;
+	text?: string;
+	learner: LearnerName | null;
+	hard: HardWord[];
+	focus: string[];
+	level: { value: 1 | 2 | 3 | 4; first: boolean };
+}
+
+/**
+ * One whole turn in one request (/api/bot/turn): calls `onEvent` for each
+ * step as it streams in. Gives up with BotError("timeout") if nothing new
+ * arrives for `idleMs`.
+ */
+export async function fetchTurn(
+	body: TurnBody,
+	onEvent: (e: TurnEvent) => void,
+	idleMs = 20_000,
+) {
+	const abort = new AbortController();
+	let timer = setTimeout(() => abort.abort(), idleMs);
+	const poke = () => {
+		clearTimeout(timer);
+		timer = setTimeout(() => abort.abort(), idleMs);
+	};
+	try {
+		const res = await fetch("/api/bot/turn", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-bot-passcode": encodeURIComponent(getPasscode()),
+			},
+			body: JSON.stringify(body),
+			signal: abort.signal,
+		});
+		if (!res.ok || !res.body) {
+			const data = await res.json().catch(() => ({}));
+			throw new BotError(
+				data.error ?? `http_${res.status}`,
+				data.missing,
+				data.message,
+			);
+		}
+		const reader = res.body.getReader();
+		const decoder = new TextDecoder();
+		let buffer = "";
+		for (;;) {
+			const { value, done } = await reader.read();
+			if (done) break;
+			poke();
+			buffer += decoder.decode(value, { stream: true });
+			let nl = buffer.indexOf("\n");
+			while (nl >= 0) {
+				const line = buffer.slice(0, nl).trim();
+				buffer = buffer.slice(nl + 1);
+				if (line) onEvent(JSON.parse(line) as TurnEvent);
+				nl = buffer.indexOf("\n");
+			}
+		}
+	} catch (e) {
+		if (abort.signal.aborted) throw new BotError("timeout");
+		throw e;
+	} finally {
+		clearTimeout(timer);
+	}
+}

@@ -129,3 +129,21 @@ export interface BotStatus {
 	passcode: boolean;
 	mock: boolean;
 }
+
+/**
+ * What /api/bot/turn streams back, one JSON object per line, as each step
+ * finishes: what they said (spoken turns), Ale's reply, then Ale's voice.
+ */
+export type TurnEvent =
+	| { type: "heard"; attempt: Attempt; meta: Meta; judgeFailed?: boolean }
+	| { type: "empty" }
+	| { type: "reply"; reply: TutorReply; meta: Meta }
+	| { type: "voice"; audio: string; mime: string; ms: number }
+	| { type: "voice_unavailable" }
+	| {
+			type: "error";
+			stage: "judge" | "teacher";
+			code: string;
+			message?: string;
+	  }
+	| { type: "done" };

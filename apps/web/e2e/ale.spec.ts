@@ -91,7 +91,7 @@ test("topic suggestions: pick one, Ale gets its words, chips go away", async ({
 	await expect(page.getByRole("button", { name: /Cocina|Jardín/ })).toHaveCount(
 		0,
 	);
-	const sent = page.waitForRequest("**/api/bot/reply");
+	const sent = page.waitForRequest("**/api/bot/turn");
 	const first = page
 		.getByText("¿De qué hablamos?")
 		.locator("..")
@@ -151,10 +151,46 @@ test.describe("API guards", () => {
 	});
 
 	test("endpoints need the passcode", async ({ request }) => {
-		for (const path of ["reply", "hear", "speak", "check"]) {
+		for (const path of ["reply", "hear", "speak", "check", "turn"]) {
 			const res = await request.post(`/api/bot/${path}`, { data: {} });
 			expect(res.status(), path).toBe(401);
 		}
+	});
+
+	test("turn streams the reply, then the voice, then done", async ({
+		request,
+	}) => {
+		const headers = { "x-bot-passcode": encodeURIComponent(PASSCODE) };
+		const res = await request.post("/api/bot/turn", {
+			headers,
+			data: {
+				topic: "libre",
+				history: [],
+				text: "My name is Ximena",
+				learner: null,
+				hard: [],
+				focus: [],
+				level: { value: 1, first: false },
+			},
+		});
+		expect(res.status()).toBe(200);
+		expect(res.headers()["content-type"]).toContain("ndjson");
+		const events = (await res.text())
+			.trim()
+			.split("\n")
+			.map((l) => JSON.parse(l));
+		// Mock mode has no server voice, so the phone speaks.
+		expect(events.map((e) => e.type)).toEqual([
+			"reply",
+			"voice_unavailable",
+			"done",
+		]);
+		expect(events[0].reply.learner_name.name).toBe("Ximena");
+		const bad = await request.post("/api/bot/turn", {
+			headers,
+			data: { topic: "nope", history: [] },
+		});
+		expect(bad.status()).toBe(400);
 	});
 
 	test("bad input is rejected", async ({ request }) => {
@@ -206,7 +242,7 @@ test("hard words: Ale gets them, and the list can practice one", async ({
 		);
 	});
 	await unlockAle(page);
-	const sent = page.waitForRequest("**/api/bot/reply");
+	const sent = page.waitForRequest("**/api/bot/turn");
 	const menu = page.getByRole("button", { name: "Más opciones" });
 	await expect(menu).toContainText("2"); // badge
 	await menu.click();
@@ -218,7 +254,7 @@ test("hard words: Ale gets them, and the list can practice one", async ({
 		"three",
 		"very",
 	]);
-	expect(body.latest.text).toBe('Quiero practicar "three".');
+	expect(body.text).toBe('Quiero practicar "three".');
 	await expect(page.getByText('Quiero practicar "three".')).toBeVisible();
 });
 
@@ -236,12 +272,48 @@ test("a judge failure is a soft note, not an error", async ({ page }) => {
 	// The fake mic's turn can run up to the 20s cap, slower on CI machines.
 	test.setTimeout(90_000);
 	await unlockAle(page);
-	await page.route("**/api/bot/hear", async (route) => {
+	// The server's judge failed: the turn streams a caption-only "heard"
+	// (judgeFailed), then the reply. Only spoken turns (with audio) are faked.
+	await page.route("**/api/bot/turn", async (route) => {
+		if (!route.request().postDataJSON()?.audio) return route.continue();
 		await new Promise((r) => setTimeout(r, 1500));
+		const lines = [
+			{
+				type: "heard",
+				judgeFailed: true,
+				attempt: { text: "hello", lang: "en" },
+				meta: {
+					model: "judge",
+					ms: 0,
+					inputTokens: 0,
+					outputTokens: 0,
+					costUsd: null,
+				},
+			},
+			{
+				type: "reply",
+				reply: {
+					say: "Hi!",
+					corrections: [],
+					new_words: [],
+					learner_name: { name: "" },
+					pace: "same",
+				},
+				meta: {
+					model: "t",
+					ms: 1,
+					inputTokens: 0,
+					outputTokens: 0,
+					costUsd: 0,
+				},
+			},
+			{ type: "voice_unavailable" },
+			{ type: "done" },
+		];
 		await route.fulfill({
-			status: 502,
-			contentType: "application/json",
-			body: JSON.stringify({ error: "judge_error", message: "SyntaxError" }),
+			status: 200,
+			contentType: "application/x-ndjson",
+			body: `${lines.map((l) => JSON.stringify(l)).join("\n")}\n`,
 		});
 	});
 	await page.getByRole("button", { name: /Hablar/ }).click();
@@ -259,7 +331,7 @@ test("English level: a beginner's first chat starts in Spanish, menu can change 
 	page,
 }) => {
 	await unlockAle(page);
-	const firstReq = page.waitForRequest("**/api/bot/reply");
+	const firstReq = page.waitForRequest("**/api/bot/turn");
 	await page.getByPlaceholder("…o escribe aquí").fill("hola");
 	await page.getByRole("button", { name: "Enviar" }).click();
 	expect((await firstReq).postDataJSON().level).toEqual({
@@ -277,7 +349,7 @@ test("English level: a beginner's first chat starts in Spanish, menu can change 
 	await page.getByRole("menuitem", { name: /Nueva conversación/ }).click();
 
 	// A later chat isn't the first one, and uses the chosen level.
-	const nextReq = page.waitForRequest("**/api/bot/reply");
+	const nextReq = page.waitForRequest("**/api/bot/turn");
 	await page.getByPlaceholder("…o escribe aquí").fill("hello");
 	await page.getByRole("button", { name: "Enviar" }).click();
 	expect((await nextReq).postDataJSON().level).toEqual({
@@ -371,7 +443,11 @@ test("✋ Terminé de hablar sends the turn right away", async ({ page }) => {
 	});
 	// Tap until the fake mic's beeps have counted as speech (a real learner
 	// taps after talking). Before that, the page says it hasn't heard them yet.
-	const heard = page.waitForRequest("**/api/bot/hear", { timeout: 25_000 });
+	const heard = page.waitForRequest(
+		(r) =>
+			r.url().includes("/api/bot/turn") && Boolean(r.postDataJSON()?.audio),
+		{ timeout: 25_000 },
+	);
 	for (let i = 0; i < 20; i++) {
 		await page.waitForTimeout(1_000);
 		const btn = page.getByRole("button", { name: /Terminé de hablar/ });

@@ -22,7 +22,7 @@ test.describe("small phone (320 wide)", () => {
 
 test("two quick typed messages are both kept", async ({ page }) => {
 	await unlockAle(page);
-	await page.route("**/api/bot/reply", async (route) => {
+	await page.route("**/api/bot/turn", async (route) => {
 		await new Promise((r) => setTimeout(r, 800));
 		await route.continue();
 	});
@@ -41,7 +41,7 @@ test("two quick typed messages are both kept", async ({ page }) => {
 
 test("a late reply doesn't land in a new chat", async ({ page }) => {
 	await unlockAle(page);
-	await page.route("**/api/bot/reply", async (route) => {
+	await page.route("**/api/bot/turn", async (route) => {
 		await new Promise((r) => setTimeout(r, 1000));
 		await route.continue();
 	});
