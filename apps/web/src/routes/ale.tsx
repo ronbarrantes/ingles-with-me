@@ -294,6 +294,7 @@ function Bot() {
 			setLocked(true);
 			setError("Código incorrecto.");
 		} else if (e instanceof BotError && e.code === "timeout") {
+			track("turn_timeout");
 			setError("Ale tardó demasiado en responder. Intenta otra vez.");
 		} else if (e instanceof BotError && e.code === "not_configured") {
 			setError(`Falta configurar: ${e.missing.join(", ")}`);

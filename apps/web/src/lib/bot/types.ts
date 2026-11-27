@@ -146,4 +146,5 @@ export type TurnEvent =
 			code: string;
 			message?: string;
 	  }
+	| { type: "ping" }
 	| { type: "done" };

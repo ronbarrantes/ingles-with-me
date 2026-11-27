@@ -154,3 +154,27 @@ describe("runTurn", () => {
 		expect(s.seen).not.toContain("judge");
 	});
 });
+
+describe("runTurn time limits", () => {
+	it("a slow judge: carries on with the caption, no scores", async () => {
+		const s = steps({
+			judge: () => new Promise(() => {}), // never answers
+			judgeTimeoutMs: 30,
+		});
+		const ev = await run(
+			input({ audio: "x".repeat(200), caption: "hello" }),
+			s,
+		);
+		expect(ev[0]).toMatchObject({ type: "heard", judgeFailed: true });
+		expect(ev.map((e) => e.type)).toEqual(["heard", "reply", "voice", "done"]);
+	});
+
+	it("a slow teacher: an error event", async () => {
+		const s = steps({
+			teacher: () => new Promise(() => {}),
+			teacherTimeoutMs: 30,
+		});
+		const ev = await run(input({ text: "hi" }), s);
+		expect(ev.map((e) => e.type)).toEqual(["error", "done"]);
+	});
+});
