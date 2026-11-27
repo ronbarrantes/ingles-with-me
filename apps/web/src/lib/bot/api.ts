@@ -139,7 +139,7 @@ export interface TurnBody {
 export async function fetchTurn(
 	body: TurnBody,
 	onEvent: (e: TurnEvent) => void,
-	idleMs = 20_000,
+	idleMs = 30_000,
 ) {
 	const abort = new AbortController();
 	let timer = setTimeout(() => abort.abort(), idleMs);

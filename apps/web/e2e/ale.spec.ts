@@ -178,7 +178,8 @@ test.describe("API guards", () => {
 		const events = (await res.text())
 			.trim()
 			.split("\n")
-			.map((l) => JSON.parse(l));
+			.map((l) => JSON.parse(l))
+			.filter((e) => e.type !== "ping"); // heartbeats on slow runs
 		// Mock mode has no server voice, so the phone speaks.
 		expect(events.map((e) => e.type)).toEqual([
 			"reply",

@@ -27,6 +27,30 @@ export interface TurnSteps {
 	voiceReady: () => boolean;
 	voice: (text: string) => Promise<{ audio: ArrayBuffer; type: string }>;
 	report: (error: unknown, stage: string) => void;
+	/** Give up on a step after this long (ms): judge → continue without scores. */
+	judgeTimeoutMs?: number;
+	teacherTimeoutMs?: number;
+}
+
+class StepTimeout extends Error {}
+
+function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+	return new Promise<T>((resolve, reject) => {
+		const t = setTimeout(
+			() => reject(new StepTimeout(`${what} took over ${ms}ms`)),
+			ms,
+		);
+		p.then(
+			(v) => {
+				clearTimeout(t);
+				resolve(v);
+			},
+			(e) => {
+				clearTimeout(t);
+				reject(e);
+			},
+		);
+	});
 }
 
 export interface TurnInput {
@@ -50,7 +74,11 @@ export async function runTurn(
 	if (input.audio) {
 		if (steps.judgeReady()) {
 			try {
-				const heard = await steps.judge(input.audio, input.caption);
+				const heard = await withTimeout(
+					steps.judge(input.audio, input.caption),
+					steps.judgeTimeoutMs ?? 10_000,
+					"judge",
+				);
 				latest = heard.attempt;
 				if (latest.text.trim())
 					send({ type: "heard", attempt: latest, meta: heard.meta });
@@ -82,11 +110,10 @@ export async function runTurn(
 
 	let reply: TutorReply;
 	try {
-		const r = await steps.teacher(
-			input.topic,
-			input.history,
-			latest,
-			input.ctx,
+		const r = await withTimeout(
+			steps.teacher(input.topic, input.history, latest, input.ctx),
+			steps.teacherTimeoutMs ?? 20_000,
+			"teacher",
 		);
 		reply = r.reply;
 		send({ type: "reply", reply, meta: r.meta });
@@ -105,7 +132,7 @@ export async function runTurn(
 	if (steps.voiceReady()) {
 		const started = Date.now();
 		try {
-			const v = await steps.voice(reply.say);
+			const v = await withTimeout(steps.voice(reply.say), 10_000, "voice");
 			send({
 				type: "voice",
 				audio: Buffer.from(v.audio).toString("base64"),

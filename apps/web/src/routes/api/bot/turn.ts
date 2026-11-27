@@ -46,6 +46,9 @@ export const Route = createFileRoute("/api/bot/turn")({
 					async start(controller) {
 						const send = (e: TurnEvent) =>
 							controller.enqueue(encoder.encode(`${JSON.stringify(e)}\n`));
+						// "Still working": keeps the phone from giving up while a
+						// slow step runs (the phone waits up to 30s without news).
+						const ping = setInterval(() => send({ type: "ping" }), 4_000);
 						try {
 							await runTurn(
 								{
@@ -107,6 +110,7 @@ export const Route = createFileRoute("/api/bot/turn")({
 							send({ type: "error", stage: "teacher", code: "turn_error" });
 							send({ type: "done" });
 						} finally {
+							clearInterval(ping);
 							controller.close();
 						}
 					},
