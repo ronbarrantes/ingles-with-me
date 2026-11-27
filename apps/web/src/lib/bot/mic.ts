@@ -129,17 +129,23 @@ export class Mic {
 	}
 
 	private lastChunkAt = 0;
+	/** Last time a chunk had any sound at all (a dead mic gives exact zeros). */
+	private lastSoundAt = 0;
 
 	/** The listening engine's state, for diagnostics. */
 	get engineState() {
 		return this.ctx?.state ?? "none";
 	}
 
-	/** Wait until sound chunks arrive (or give up after `ms`). */
+	/**
+	 * Wait until real sound arrives (or give up after `ms`). Real rooms always
+	 * have some background noise; a dead mic (iPhone, after the mic was taken
+	 * back) delivers chunks of exact zeros, which don't count.
+	 */
 	private async flowing(ms: number) {
 		const since = performance.now();
 		while (performance.now() - since < ms) {
-			if (this.lastChunkAt > since) return true;
+			if (this.lastSoundAt > since) return true;
 			await new Promise((r) => setTimeout(r, 60));
 		}
 		return false;
@@ -190,6 +196,12 @@ export class Mic {
 	private process(input: Float32Array, rate: number) {
 		this.lastChunkAt = performance.now();
 		this.rate = rate;
+		// Any sound at all? (Checked even when not listening, for ensureRunning.)
+		for (let i = 0; i < input.length; i += 64)
+			if (Math.abs(input[i]) > 1e-6) {
+				this.lastSoundAt = this.lastChunkAt;
+				break;
+			}
 		if (!this.handlers) return;
 		const chunk = new Float32Array(input); // the buffer is reused by the browser
 		const ms = (chunk.length / rate) * 1000;
