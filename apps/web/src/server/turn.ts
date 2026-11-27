@@ -72,7 +72,11 @@ export async function runTurn(
 	let latest: Attempt | null = null;
 
 	if (input.audio) {
+		let reason: "judge_empty" | "judge_failed" | "no_judge" = "no_judge";
+		let error: string | undefined;
+		const judgeStart = Date.now();
 		if (steps.judgeReady()) {
+			reason = "judge_empty";
 			try {
 				const heard = await withTimeout(
 					steps.judge(input.audio, input.caption),
@@ -83,6 +87,8 @@ export async function runTurn(
 				if (latest.text.trim())
 					send({ type: "heard", attempt: latest, meta: heard.meta });
 			} catch (e) {
+				reason = "judge_failed";
+				error = String(e).slice(0, 120);
 				steps.report(e, "judge");
 				// Carry on with the phone's caption, without scores.
 				if (input.caption.trim()) {
@@ -100,7 +106,12 @@ export async function runTurn(
 			send({ type: "heard", attempt: latest, meta: noMeta("caption") });
 		}
 		if (!latest?.text.trim()) {
-			send({ type: "empty" });
+			send({
+				type: "empty",
+				reason,
+				judge_ms: Date.now() - judgeStart,
+				...(error && { error }),
+			});
 			send({ type: "done" });
 			return;
 		}

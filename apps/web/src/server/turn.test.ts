@@ -97,6 +97,7 @@ describe("runTurn", () => {
 		});
 		const ev = await run(input({ audio: "x".repeat(200) }), s);
 		expect(ev.map((e) => e.type)).toEqual(["empty", "done"]);
+		expect(ev[0]).toMatchObject({ reason: "judge_empty" });
 		expect(s.seen).toEqual([]);
 	});
 
