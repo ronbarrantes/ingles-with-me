@@ -146,6 +146,12 @@ function Bot() {
 	const micChoiceRef = useRef<"on" | "off" | null>(null);
 	const headphonesRef = useRef(false);
 	const stallsRef = useRef(0);
+	/** Unusable clips in a row (the judge heard nothing). */
+	const emptiesRef = useRef(0);
+	/** Take the mic again before the next listen. */
+	const freshMicRef = useRef(false);
+	/** Ask for a tap before the next listen. */
+	const stuckRef = useRef(false);
 	const applyMicMode = () => {
 		const c = micChoiceRef.current;
 		const keep =
@@ -392,11 +398,24 @@ function Bot() {
 				setPending(false);
 				track("ale_empty_turn", {
 					judged: Boolean(statusRef.current?.judge.ready),
+					...mic.current?.lastClip,
+					engine: mic.current?.engineState,
 				});
+				// The clip was unusable (often garbled sound after the phone sat
+				// idle): take the mic again fresh. Twice in a row: ask for a tap,
+				// which lets the iPhone rebuild the whole listening engine.
+				emptiesRef.current += 1;
+				if (emptiesRef.current >= 2) {
+					emptiesRef.current = 0;
+					stallsRef.current += 1;
+					applyMicMode();
+					stuckRef.current = true;
+				} else freshMicRef.current = true;
 				return;
 			}
 			if (failed) throw failed;
 			if (!reply || !replyMeta) throw new BotError("no_reply");
+			emptiesRef.current = 0;
 			const r = reply as TutorReply;
 			const meta = replyMeta as Meta;
 			// Adjust the English level from this turn and the teacher's read of it.
@@ -466,6 +485,16 @@ function Bot() {
 	// One spoken turn: record until she stops, have the judge hear it, then ask Ale.
 	async function listen() {
 		if (!mic.current || !handsFreeRef.current) return;
+		if (stuckRef.current) {
+			stuckRef.current = false;
+			setMode("idle");
+			setStalled(true);
+			return;
+		}
+		if (freshMicRef.current) {
+			freshMicRef.current = false;
+			mic.current.release();
+		}
 		try {
 			await mic.current.open(); // no-op if it's already open
 		} catch {
@@ -567,6 +596,9 @@ function Bot() {
 		voice.current.unlock();
 		captions.current ??= new Captions();
 		try {
+			// Every «Hablar» tap starts a fresh listening engine: after the page
+			// sat idle, an iPhone can hand back an old one that garbles sound.
+			mic.current?.close();
 			mic.current ??= new Mic();
 			await mic.current.open();
 			await checkHeadphones(); // device names are visible now
@@ -991,6 +1023,7 @@ function Bot() {
 						onClick={async () => {
 							setStalled(false);
 							// A tap lets iPhones restart the listening engine.
+							mic.current?.close();
 							if (await mic.current?.ensureRunning()) {
 								handsFreeRef.current = true;
 								setHandsFree(true);

@@ -178,6 +178,29 @@ export class Mic {
 
 	private rate = 48_000;
 
+	/** Loudness and format of the last clip sent, for diagnostics. */
+	lastClip?: { peak: number; rms: number; ms: number; rate: number };
+
+	private send(done: MicHandlers, audio: Float32Array[], total: number) {
+		let peak = 0;
+		let sum = 0;
+		let n = 0;
+		for (const c of audio)
+			for (const v of c) {
+				const a = Math.abs(v);
+				if (a > peak) peak = a;
+				sum += v * v;
+				n++;
+			}
+		this.lastClip = {
+			peak: Math.round(peak * 1000) / 1000,
+			rms: Math.round(Math.sqrt(sum / Math.max(1, n)) * 10000) / 10000,
+			ms: Math.round(total),
+			rate: this.rate,
+		};
+		done.onTurn(toWavBase64(audio, this.rate), total);
+	}
+
 	/**
 	 * "✋ Ya terminé": end the turn now (noisy rooms can keep the mic from
 	 * hearing the pause). Returns false if no speech was heard yet.
@@ -187,9 +210,8 @@ export class Mic {
 		if (!done || !this.speaking || this.speechMs < MIN_SPEECH_MS) return false;
 		const audio = this.chunks;
 		const total = this.speechMs;
-		const rate = this.rate;
 		this.pause();
-		done.onTurn(toWavBase64(audio, rate), total);
+		this.send(done, audio, total);
 		return true;
 	}
 
@@ -244,7 +266,7 @@ export class Mic {
 			const audio = this.chunks.slice(0, this.chunks.length - drop);
 			const total = this.speechMs;
 			this.pause();
-			done.onTurn(toWavBase64(audio, rate), total);
+			this.send(done, audio, total);
 		} else if (this.quietMs >= endAfter) {
 			this.reset(); // too short to be a turn (a cough, a click)
 		}
