@@ -96,6 +96,7 @@ const FILLERS = {
 	],
 };
 const FILLER_CHANCE = 0.5;
+const FILLER_DELAY_MS = 800;
 
 // How long a silence ends their turn, by English level (ms).
 const END_SILENCE_BY_LEVEL = {
@@ -128,6 +129,9 @@ function Bot() {
 	// Their turn is being checked: show their bubble right away, text comes next.
 	const [pending, setPending] = useState(false);
 	const recentFillers = useRef<string[]>([]);
+	const turnCount = useRef(0);
+	// True from the moment Ale's reply starts playing until it ends.
+	const replying = useRef(false);
 	// The phone's live caption (hidden): used to notice "…rice and" pauses.
 	const lastCaption = useRef("");
 	const [tip, setTip] = useState<"first" | "noise" | null>(null);
@@ -310,6 +314,7 @@ function Bot() {
 			// Let go of the mic while Ale talks: with a mic open, iPhones play
 			// sound in "phone call" mode, very quietly. It reopens to listen.
 			if (!keepMicRef.current) mic.current?.release();
+			replying.current = true;
 			setMode("speaking");
 			const judgeMeta = timingRef.current.judge;
 			await voice.current?.speak(res.reply.say, () => {
@@ -340,6 +345,7 @@ function Bot() {
 			}
 			handleError(e);
 		} finally {
+			replying.current = false;
 			// A topic change already reset everything for the new chat.
 			if (!stale()) {
 				busy.current = false;
@@ -397,8 +403,14 @@ function Bot() {
 				// Right away: let go of the mic, say "Mm-hm", show their bubble.
 				if (!keepMicRef.current) mic.current?.release();
 				setPending(true);
-				// A filler only after real speech, not a cough or a short noise.
-				if (speechMs >= 1_200) sayFiller();
+				// A filler only after real speech (not a cough), and only if Ale
+				// still needs a moment ~0.8s later: by then the iPhone has finished
+				// switching audio modes (louder), and a quick reply needs no filler.
+				const turn = ++turnCount.current;
+				if (speechMs >= 1_200)
+					setTimeout(() => {
+						if (turnCount.current === turn && !replying.current) sayFiller();
+					}, FILLER_DELAY_MS);
 				let attempt: Attempt | null = null;
 				if (statusRef.current?.judge.ready) {
 					setMode("hearing");
