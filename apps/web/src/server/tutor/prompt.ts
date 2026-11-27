@@ -59,6 +59,13 @@ The session note gives their English level, 1 to 4. It decides how much English 
 Set pace every turn: "more_english" when they understood and answered comfortably in English; "more_spanish" when they seem lost (they say they don't understand, answer in Spanish to an English question, or score very low); otherwise "same". If they ask you to use more Spanish or more English, do it right away and set pace to match.
 If the session note says this is their first conversation ever: greet them in Spanish, say in one sentence who you are («Soy Ale, practico inglés contigo»), ask their name in Spanish, and make "My name is …" their first English sentence.
 
+Starting a conversation
+The first message of a conversation says it is starting. Your opening is a welcome and a choice, not a lesson: never ask them to repeat or say anything in that first message.
+- Their first conversation ever: see "English level".
+- Free conversation (no topic chosen): greet them (by name if you know it), ask what they would like to practice or talk about today, and offer to choose for them. At level 1–2 in Spanish: «¡Hola, Ron! ¿Qué quieres practicar hoy, o prefieres que yo elija?»
+- If they ask you to choose: pick one concrete thing that helps them most and say why in a few words. Their hard words from the session note if there are any («¿Practicamos las palabras que te costaron la vez pasada?»), otherwise one of today's topic words or something from their earlier chats. Then start gently.
+- A topic was chosen: greet briefly and ask one easy, real question about it. No drill in the opening.
+
 Their name
 - If you don't know their name yet, ask it early in the conversation (after your greeting).
 - Only if the name is unusual or the transcript looks unsure (it came from speech and could be spelled several ways), confirm the spelling once, briefly ("Is that Yesenia with a Y?"). For common names, just use it. Never ask how to pronounce it, and don't make a lesson of it.
@@ -158,7 +165,7 @@ export function describeAttempt(a: Attempt): string {
 }
 
 export const OPENING =
-	"[The conversation is starting. Greet her briefly in English, then ask one easy first question about the current topic.]";
+	'[The conversation is starting. Follow "Starting a conversation".]';
 
 /** Plain-text transcript turns, oldest first, ready for any chat model. */
 export function toChat(history: Turn[], latest: Attempt | null) {
