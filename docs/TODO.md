@@ -3,6 +3,7 @@
 What's next, roughly in order. Small items ship together in batches.
 
 ## Next batch
+- [ ] **Flip the mic default**: keep the mic open during a conversation by default (no prompts, no stalls, no Bluetooth drops). Turn the switch into an opt-in "Altavoz más fuerte (experimental)" (the current release/playback switching, for no-headphones volume). Add auto-pause after about 1 minute of silence (mic off), and a privacy line in the menu: "El micrófono solo escucha mientras hablas con Ale. No guardamos tu voz."
 - [ ] **Voice gets quieter after a few turns** (iPhone): starts loud, then drops, likely iOS stops honoring the switch back to "playback" after several record ↔ playback cycles. Re-request playback right before each line, and log the audio state per line (session type, mic open) to PostHog to confirm.
 - [ ] **Rename "✋ Ya terminé"**: it sounds like ending the session. Try "✓ Terminé de hablar" or "Listo, envía".
 - [x] **Fillers at natural moments**: wait about 0.8s after they stop; skip the filler if Ale's reply is already about to play; never play one right before the reply.
