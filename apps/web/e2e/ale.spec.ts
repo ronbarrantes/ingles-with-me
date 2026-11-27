@@ -364,7 +364,9 @@ test("✋ Terminé de hablar sends the turn right away", async ({ page }) => {
 	test.setTimeout(60_000);
 	await unlockAle(page);
 	await page.getByRole("button", { name: /Hablar/ }).click();
-	await expect(page.getByRole("button", { name: /Terminé de hablar/ })).toBeVisible({
+	await expect(
+		page.getByRole("button", { name: /Terminé de hablar/ }),
+	).toBeVisible({
 		timeout: 20_000,
 	});
 	// Tap until the fake mic's beeps have counted as speech (a real learner
