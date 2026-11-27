@@ -6,13 +6,18 @@ import { setAudioSession } from "./audioSession";
 
 const TARGET_RATE = 16_000;
 const START_CHUNKS = 2; // loud chunks in a row before we call it speech
-const END_SILENCE_MS = 1_100; // quiet this long after speech = turn over
+const END_SILENCE_MS = 1_100; // default: quiet this long after speech = turn over
+const UNFINISHED_EXTRA_MS = 1_000; // more patience after "and", "the", "y"…
 const MIN_SPEECH_MS = 350;
 const MAX_TURN_MS = 20_000;
 const PREROLL_CHUNKS = 4; // keep a little audio from before speech started
 const KEEP_TAIL_MS = 250; // of the closing silence; the rest isn't sent
 
 export interface MicHandlers {
+	/** Silence that ends a turn, in ms (beginners pause more mid-sentence). */
+	endSilenceMs?: number;
+	/** True when the sentence sounds unfinished ("…rice and"): wait a bit longer. */
+	soundsUnfinished?: () => boolean;
 	onSpeechStart?: () => void;
 	/** Loudness 0–1 about 12 times a second, for the listening bubble. */
 	onLevel?: (level: number) => void;
@@ -193,8 +198,14 @@ export class Mic {
 		this.chunks.push(chunk);
 		this.speechMs += ms;
 		this.quietMs = rms < threshold * 0.6 ? this.quietMs + ms : 0;
+		const base = this.handlers.endSilenceMs ?? END_SILENCE_MS;
+		// Only ask about an unfinished sentence once the base wait has passed.
+		const endAfter =
+			this.quietMs >= base && this.handlers.soundsUnfinished?.()
+				? base + UNFINISHED_EXTRA_MS
+				: base;
 		if (
-			(this.quietMs >= END_SILENCE_MS && this.speechMs >= MIN_SPEECH_MS) ||
+			(this.quietMs >= endAfter && this.speechMs >= MIN_SPEECH_MS) ||
 			this.speechMs >= MAX_TURN_MS
 		) {
 			const done = this.handlers;
@@ -204,7 +215,7 @@ export class Mic {
 			const total = this.speechMs;
 			this.pause();
 			done.onTurn(toWavBase64(audio, rate), total);
-		} else if (this.quietMs >= END_SILENCE_MS) {
+		} else if (this.quietMs >= endAfter) {
 			this.reset(); // too short to be a turn (a cough, a click)
 		}
 	}
