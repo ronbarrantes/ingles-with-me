@@ -337,3 +337,25 @@ test("headphone tip shows on the first talk and stays dismissed", async ({
 	await expect(page.getByText(/Con audífonos \(como AirPods\)/)).toHaveCount(0);
 	await page.getByRole("button", { name: /Pausar/ }).click();
 });
+
+test("'Micrófono siempre abierto' can be turned on and is remembered", async ({
+	page,
+}) => {
+	await unlockAle(page);
+	const menu = page.getByRole("button", { name: "Más opciones" });
+	await menu.click();
+	await page.getByRole("menuitem", { name: /siempre abierto: no/ }).click();
+	await expect(
+		page.getByRole("menuitem", { name: /siempre abierto: sí/ }),
+	).toBeVisible();
+	await page.reload();
+	await page.getByRole("button", { name: "Más opciones" }).click();
+	await expect(
+		page.getByRole("menuitem", { name: /siempre abierto: sí/ }),
+	).toBeVisible();
+	// Hands-free still works with the mic kept open.
+	await page.getByRole("button", { name: "Más opciones" }).click();
+	await page.getByRole("button", { name: /Hablar/ }).click();
+	await expect(page.getByText("Te escucho…")).toBeVisible({ timeout: 20_000 });
+	await page.getByRole("button", { name: /Pausar/ }).click();
+});

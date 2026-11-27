@@ -65,6 +65,7 @@ const FACE: Record<Mode, { emoji: string; label: string }> = {
 };
 
 const TIP_KEY = "iwm:tip-headphones";
+const KEEP_MIC_KEY = "iwm:keep-mic";
 
 // Said right after they stop talking, about half the time (clips cached on
 // the phone, fast voice): Spanish for levels 1–2, English for 3–4.
@@ -107,6 +108,12 @@ function Bot() {
 	const [mode, setMode] = useState<Mode>("idle");
 	const [handsFree, setHandsFree] = useState(false);
 	const [voiceLevel, setVoiceLevel] = useState(0);
+	// The mic stopped hearing and needs a tap to restart (iPhone).
+	const [stalled, setStalled] = useState(false);
+	// "Micrófono siempre abierto": no releasing between turns (no prompts or
+	// stalls), but iPhones play Ale more quietly.
+	const [keepMic, setKeepMic] = useState(false);
+	const keepMicRef = useRef(false);
 	// Their turn is being checked: show their bubble right away, text comes next.
 	const [pending, setPending] = useState(false);
 	const recentFillers = useRef<string[]>([]);
@@ -196,6 +203,12 @@ function Bot() {
 		hardRef.current = getHardWords();
 		setHard(hardRef.current);
 		setInterests(getInterests());
+		try {
+			keepMicRef.current = localStorage.getItem(KEEP_MIC_KEY) === "1";
+			setKeepMic(keepMicRef.current);
+		} catch {
+			// Private mode: default.
+		}
 		levelRef.current = getLevel(wordsRef.current);
 		setLevelState(levelRef.current);
 		fetchStatus()
@@ -283,7 +296,7 @@ function Bot() {
 			addCost(res.meta);
 			// Let go of the mic while Ale talks: with a mic open, iPhones play
 			// sound in "phone call" mode, very quietly. It reopens to listen.
-			mic.current?.release();
+			if (!keepMicRef.current) mic.current?.release();
 			setMode("speaking");
 			const judgeMeta = timingRef.current.judge;
 			await voice.current?.speak(res.reply.say, () => {
@@ -336,6 +349,14 @@ function Bot() {
 			return;
 		}
 		if (!handsFreeRef.current) return;
+		// Is sound really coming in? (iPhones can leave the engine paused.)
+		if (!(await mic.current.ensureRunning())) {
+			track("mic_stall", { state: mic.current.engineState });
+			setMode("idle");
+			setStalled(true);
+			return;
+		}
+		if (!handsFreeRef.current) return;
 		setMode("listening");
 		setVoiceLevel(0);
 		// The phone's live caption only hears English (Spanish comes out garbled),
@@ -354,7 +375,7 @@ function Bot() {
 				const spokeAt = performance.now();
 				const caption = captions.current?.stop() ?? "";
 				// Right away: let go of the mic, say "Mm-hm", show their bubble.
-				mic.current?.release();
+				if (!keepMicRef.current) mic.current?.release();
 				setPending(true);
 				sayFiller();
 				let attempt: Attempt | null = null;
@@ -388,6 +409,9 @@ function Bot() {
 				if (!attempt && caption) attempt = { text: caption, lang: "en" };
 				if (!attempt?.text.trim()) {
 					setPending(false);
+					track("ale_empty_turn", {
+						judged: Boolean(statusRef.current?.judge.ready),
+					});
 					setMode("idle");
 					if (handsFreeRef.current) void listen();
 					return;
@@ -425,6 +449,7 @@ function Bot() {
 			// Private mode: skip the tip.
 		}
 		voice.current ??= new Voice(Boolean(statusRef.current?.voice.ready));
+		voice.current.switchSession = !keepMicRef.current;
 		voice.current.unlock();
 		captions.current ??= new Captions();
 		try {
@@ -464,6 +489,7 @@ function Bot() {
 
 	const pause = () => {
 		setPending(false);
+		setStalled(false);
 		handsFreeRef.current = false;
 		setHandsFree(false);
 		voice.current?.stop();
@@ -479,6 +505,7 @@ function Bot() {
 		// While Ale is busy the text stays in the box (the button is disabled too).
 		if (!text || busy.current) return;
 		voice.current ??= new Voice(Boolean(statusRef.current?.voice.ready));
+		voice.current.switchSession = !keepMicRef.current;
 		voice.current.unlock();
 		setTyped("");
 		mic.current?.pause();
@@ -490,6 +517,7 @@ function Bot() {
 	const practice = (word: string) => {
 		if (busy.current) return;
 		voice.current ??= new Voice(Boolean(statusRef.current?.voice.ready));
+		voice.current.switchSession = !keepMicRef.current;
 		voice.current.unlock();
 		mic.current?.pause();
 		captions.current?.stop();
@@ -517,9 +545,10 @@ function Bot() {
 			.find((t) => t.role === "tutor");
 		if (!last || last.role !== "tutor" || busy.current) return;
 		busy.current = true;
-		mic.current?.release();
+		if (!keepMicRef.current) mic.current?.release();
 		captions.current?.stop();
 		voice.current ??= new Voice(Boolean(statusRef.current?.voice.ready));
+		voice.current.switchSession = !keepMicRef.current;
 		voice.current.unlock();
 		setMode("speaking");
 		try {
@@ -739,6 +768,21 @@ function Bot() {
 							}}
 							label="🔄 Nueva conversación"
 						/>
+						<MenuItem
+							onClick={() => {
+								const next = !keepMicRef.current;
+								keepMicRef.current = next;
+								setKeepMic(next);
+								if (voice.current) voice.current.switchSession = !next;
+								try {
+									localStorage.setItem(KEEP_MIC_KEY, next ? "1" : "0");
+								} catch {
+									// Private mode.
+								}
+							}}
+							label={`🎙️ Micrófono siempre abierto: ${keepMic ? "sí" : "no"}`}
+							sub="Sin avisos ni cortes, pero Ale se oye más bajo (mejor con audífonos)"
+						/>
 						{levelState && (
 							<LevelRow
 								state={levelState}
@@ -788,6 +832,26 @@ function Bot() {
 			)}
 
 			<div className="border-t-2 border-line px-5 pt-3 pb-4">
+				{stalled && (
+					<button
+						type="button"
+						onClick={async () => {
+							setStalled(false);
+							// A tap lets iPhones restart the listening engine.
+							if (await mic.current?.ensureRunning()) {
+								handsFreeRef.current = true;
+								setHandsFree(true);
+								void listen();
+							} else {
+								setError("El micrófono no responde. Toca «Hablar» otra vez.");
+								pause();
+							}
+						}}
+						className="mb-2 h-14 w-full rounded-sm border-2 border-ink bg-card text-lg font-extrabold"
+					>
+						🎙 Toca para seguir escuchando
+					</button>
+				)}
 				<button
 					type="button"
 					onClick={handsFree ? pause : start}
