@@ -136,7 +136,13 @@ export interface BotStatus {
  */
 export type TurnEvent =
 	| { type: "heard"; attempt: Attempt; meta: Meta; judgeFailed?: boolean }
-	| { type: "empty" }
+	| {
+			type: "empty";
+			/** Why nothing was heard, for diagnostics. */
+			reason?: "judge_empty" | "judge_failed" | "no_judge";
+			judge_ms?: number;
+			error?: string;
+	  }
 	| { type: "reply"; reply: TutorReply; meta: Meta }
 	| { type: "voice"; audio: string; mime: string; ms: number }
 	| { type: "voice_unavailable" }

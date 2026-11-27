@@ -3,6 +3,7 @@
 
 import { track, trackError } from "#/lib/analytics";
 import { speakParts } from "#/lib/speech";
+import { trace } from "#/lib/trace";
 import { BotError, fetchSpeech } from "./api";
 import { audioSessionType, setAudioSession } from "./audioSession";
 import { splitLang } from "./segments";
@@ -139,6 +140,7 @@ export class Voice {
 	/** Play a filler right away (if its clip is ready), without waiting for it to end. */
 	filler(line: string) {
 		const clip = this.clips.get(line);
+		trace("voice", clip ? "filler" : "filler_not_ready", { line });
 		if (clip && this.switchSession) setAudioSession("playback");
 		if (clip) {
 			const url = URL.createObjectURL(clip);
@@ -173,6 +175,13 @@ export class Voice {
 	 */
 	async speak(text: string, onStart?: () => void, ready?: Blob | null) {
 		this.lastFetchMs = 0;
+		trace("voice", "speak", {
+			chars: text.length,
+			spanish_parts: splitLang(text).filter((p) => p.lang === "es").length,
+			audio: ready ? "ready" : ready === null ? "none" : "fetch",
+			kb: ready ? Math.round(ready.size / 1024) : undefined,
+			session: audioSessionType(),
+		});
 		await this.fillerDone; // let a "Mm-hm" finish first (it's short)
 		// Loud speaker while Ale talks (the mic is released meanwhile).
 		// Ask for the loud speaker before EVERY line (iPhones sometimes drop back
@@ -185,6 +194,7 @@ export class Voice {
 			try {
 				return await this.playBlob(ready, onStart);
 			} catch (e) {
+				trace("voice", "play_failed", { error: String(e).slice(0, 120) });
 				trackError(e, { stage: "voice-play" });
 				track("voice_fallback");
 			}
@@ -204,11 +214,13 @@ export class Voice {
 				track("voice_fallback");
 			}
 		}
+		trace("voice", "phone_voice");
 		onStart?.();
 		await this.playPhone(text);
 	}
 
 	stop() {
+		trace("voice", "stop");
 		this.audio?.pause();
 		this.boosted?.pause();
 		if (typeof window !== "undefined") window.speechSynthesis?.cancel();
@@ -225,17 +237,38 @@ export class Voice {
 	private async playBlob(blob: Blob, onStart?: () => void) {
 		await this.wake();
 		const url = URL.createObjectURL(blob);
+		const asked = performance.now();
 		try {
 			await new Promise<void>((done, fail) => {
 				this.stopped = done;
 				const playOn = (audio: HTMLAudioElement, started: boolean) => {
-					audio.onended = () => done();
-					audio.onerror = () => fail(new Error("audio playback failed"));
+					audio.onended = () => {
+						trace("voice", "ended", {
+							ms: Math.round(performance.now() - asked),
+							duration_ms: Math.round((audio.duration || 0) * 1000),
+						});
+						done();
+					};
+					audio.onerror = () => {
+						trace("voice", "error", { code: audio.error?.code });
+						fail(new Error("audio playback failed"));
+					};
+					audio.onpause = () => {
+						if (!audio.ended)
+							trace("voice", "paused", {
+								at_ms: Math.round(audio.currentTime * 1000),
+							});
+					};
 					audio.src = url;
 					audio
 						.play()
 						.then(() => {
 							if (!started) {
+								trace("voice", "playing", {
+									wait_ms: Math.round(performance.now() - asked),
+									volume: audio.volume,
+									muted: audio.muted,
+								});
 								onStart?.();
 								// What the phone is doing as Ale speaks (for the volume issue).
 								track("voice_line", {

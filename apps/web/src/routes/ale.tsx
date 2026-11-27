@@ -47,12 +47,13 @@ import type {
 } from "#/lib/bot/types";
 import { Voice } from "#/lib/bot/voice";
 import { useStore } from "#/lib/store";
+import { trace, traceVisit } from "#/lib/trace";
 
 // Hidden for now: not linked anywhere, not indexed.
 
 /** One step of the mic's life, for diagnosing "stuck" from PostHog. */
 function micStep(step: string, props?: Record<string, unknown>) {
-	track("mic_step", { step, page: document.visibilityState, ...props });
+	trace("mic", step, props);
 }
 
 export const Route = createFileRoute("/ale")({
@@ -154,9 +155,18 @@ function Bot() {
 	const stallsRef = useRef(0);
 	// Log the page being hidden/shown: iPhones change the mic when that happens.
 	useEffect(() => {
-		const onVis = () => micStep(`page_${document.visibilityState}`);
+		traceVisit();
+		trace("page", "open", {
+			audio_session: "audioSession" in navigator,
+		});
+		const onVis = () => trace("page", document.visibilityState);
+		const onHide = () => trace("page", "leave");
 		document.addEventListener("visibilitychange", onVis);
-		return () => document.removeEventListener("visibilitychange", onVis);
+		window.addEventListener("pagehide", onHide);
+		return () => {
+			document.removeEventListener("visibilitychange", onVis);
+			window.removeEventListener("pagehide", onHide);
+		};
 	}, []);
 	/** Unusable clips in a row (the judge heard nothing). */
 	const emptiesRef = useRef(0);
@@ -192,6 +202,29 @@ function Bot() {
 	const [typed, setTyped] = useState("");
 	const [error, setError] = useState("");
 	const [note, setNote] = useState("");
+	// Trace every visible state change: what the learner saw, and when.
+	useEffect(() => trace("ui", "mode", { mode }), [mode]);
+	useEffect(() => trace("ui", "hands_free", { on: handsFree }), [handsFree]);
+	useEffect(() => {
+		if (stalled) trace("ui", "stalled_button");
+	}, [stalled]);
+	useEffect(() => trace("ui", "keep_mic", { on: keepMic }), [keepMic]);
+	useEffect(
+		() => trace("ui", "mic_choice", { choice: micChoice }),
+		[micChoice],
+	);
+	useEffect(() => {
+		if (pending) trace("ui", "pending_bubble");
+	}, [pending]);
+	useEffect(() => {
+		if (error) trace("ui", "error", { text: error });
+	}, [error]);
+	useEffect(() => {
+		if (note) trace("ui", "note", { text: note });
+	}, [note]);
+	useEffect(() => {
+		if (tip) trace("ui", "tip", { tip });
+	}, [tip]);
 	const [timing, setTiming] = useState<{
 		judge?: Meta;
 		teacher?: Meta;
@@ -356,6 +389,15 @@ function Bot() {
 			let voiceMs = 0;
 			let empty = false;
 			let failed: BotError | null = null;
+			let pings = 0;
+			trace("turn", "send", {
+				kind: input.kind,
+				history: history.length,
+				...(input.kind === "spoken" && {
+					kb: Math.round((input.wav.length * 3) / 4 / 1024),
+					caption_chars: input.caption.length,
+				}),
+			});
 			await fetchTurn(
 				{
 					topic: topicRef.current,
@@ -378,6 +420,23 @@ function Bot() {
 				},
 				(e) => {
 					if (stale()) return;
+					if (e.type === "ping") pings++;
+					else
+						trace("turn", e.type, {
+							ms: Math.round(performance.now() - sentAt),
+							pings,
+							...(e.type === "heard" && {
+								chars: e.attempt.text.length,
+								words: e.attempt.words?.length ?? 0,
+								judge_failed: Boolean(e.judgeFailed),
+							}),
+							...(e.type === "error" && { code: e.code, message: e.message }),
+							...(e.type === "empty" && {
+								reason: e.reason,
+								judge_ms: e.judge_ms,
+								error: e.error,
+							}),
+						});
 					if (e.type === "heard") {
 						latest = e.attempt;
 						noteScores(e.attempt);
@@ -540,6 +599,10 @@ function Bot() {
 		clearTimeout(idleTimer.current);
 		idleTimer.current = setTimeout(() => {
 			if (handsFreeRef.current) {
+				trace("mic", "idle_timeout", {
+					noise: mic.current?.noiseLevel,
+					engine: mic.current?.engineState,
+				});
 				pause();
 				setNote("Pausé porque no escuché nada. Toca «Hablar» para seguir.");
 				track("ale_auto_pause");
@@ -597,6 +660,7 @@ function Bot() {
 	};
 
 	const start = async () => {
+		trace("ui", "tap_hablar", { turns: turnsRef.current.length });
 		setError("");
 		// First time talking: suggest headphones once.
 		try {
@@ -651,6 +715,7 @@ function Bot() {
 	};
 
 	const pause = () => {
+		trace("ui", "pause");
 		clearTimeout(idleTimer.current);
 		setPending(false);
 		setStalled(false);
@@ -1023,7 +1088,9 @@ function Bot() {
 					<button
 						type="button"
 						onClick={() => {
-							if (!mic.current?.finish())
+							const ok = mic.current?.finish() ?? false;
+							trace("ui", "tap_finish", { ok });
+							if (!ok)
 								setNote(
 									"Todavía no te escuché. Habla y luego toca «Terminé de hablar».",
 								);
@@ -1038,6 +1105,7 @@ function Bot() {
 						type="button"
 						onClick={async () => {
 							setStalled(false);
+							trace("ui", "tap_stalled_button");
 							// A tap lets iPhones restart the listening engine.
 							mic.current?.close();
 							if (await mic.current?.ensureRunning()) {
