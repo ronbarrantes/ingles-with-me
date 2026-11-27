@@ -3,6 +3,8 @@
 What's next, roughly in order. Small items ship together in batches.
 
 ## Next batch
+- [ ] **Voice gets quieter after a few turns** (iPhone): starts loud, then drops, likely iOS stops honoring the switch back to "playback" after several record ↔ playback cycles. Re-request playback right before each line, and log the audio state per line (session type, mic open) to PostHog to confirm.
+- [ ] **Rename "✋ Ya terminé"**: it sounds like ending the session. Try "✓ Terminé de hablar" or "Listo, envía".
 - [x] **Fillers at natural moments**: wait about 0.8s after they stop; skip the filler if Ale's reply is already about to play; never play one right before the reply.
 - [ ] **Bluetooth headphones**: switching the iPhone audio session every turn (playback ↔ play-and-record) can make Bluetooth headphones drop or reconnect. Detect headphones (device labels like "AirPods" once the mic is allowed, and the `devicechange` event) and turn on "Micrófono siempre abierto" automatically.
 - [x] **Fillers while still talking** (filler only after ≥1.2s of speech; longer waits for beginners and after "and/the/y…"): "Ajá / hmm" plays on a mid-sentence pause, a cough or a kitchen noise (the mic ends a turn after about 1.1s of quiet). Play a filler only after a real stretch of speech (about 1.2s or more), consider a longer or adaptive end-of-turn wait, and track empty turns in PostHog.
