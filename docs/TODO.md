@@ -53,6 +53,8 @@ What's next, roughly in order. Small items ship together in batches.
 - [ ] **Bonuses**: real-voice word cards, a phrase kit for each situation.
 
 ## Stage 2: accounts and data
+- [ ] **Learner memory on the server (Convex)**: level, hard words, interests, name and word progress move to Convex, and the rules (level up/down, hard-word streaks, topic ranking) become server functions. Then `/api/bot/turn` reads the context itself instead of the phone sending it, and a native app gets the same memory.
+- [ ] **Words from the server**: the 300 words, hints and review rules come from Convex or an API, so words can be added or hints fixed without an app update.
 - [ ] Convex: create the project and add `CONVEX_DEPLOY_KEY`, `CONVEX_URL`, `CONVEX_APP_SECRET` in Vercel (Production). The code is ready on a local branch (`convex-wip`).
 - [ ] WorkOS sign-in (2FA); link the device profile to the account.
 - [ ] "Lo que Ale sabe de ti" page: see, edit and delete; download my data.

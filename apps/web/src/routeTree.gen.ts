@@ -22,6 +22,7 @@ import { Route as ApiBotHearRouteImport } from './routes/api/bot/hear'
 import { Route as ApiBotReplyRouteImport } from './routes/api/bot/reply'
 import { Route as ApiBotSpeakRouteImport } from './routes/api/bot/speak'
 import { Route as ApiBotStatusRouteImport } from './routes/api/bot/status'
+import { Route as ApiBotTurnRouteImport } from './routes/api/bot/turn'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -88,6 +89,11 @@ const ApiBotStatusRoute = ApiBotStatusRouteImport.update({
   path: '/api/bot/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBotTurnRoute = ApiBotTurnRouteImport.update({
+  id: '/api/bot/turn',
+  path: '/api/bot/turn',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/api/bot/reply': typeof ApiBotReplyRoute
   '/api/bot/speak': typeof ApiBotSpeakRoute
   '/api/bot/status': typeof ApiBotStatusRoute
+  '/api/bot/turn': typeof ApiBotTurnRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/api/bot/reply': typeof ApiBotReplyRoute
   '/api/bot/speak': typeof ApiBotSpeakRoute
   '/api/bot/status': typeof ApiBotStatusRoute
+  '/api/bot/turn': typeof ApiBotTurnRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/api/bot/reply': typeof ApiBotReplyRoute
   '/api/bot/speak': typeof ApiBotSpeakRoute
   '/api/bot/status': typeof ApiBotStatusRoute
+  '/api/bot/turn': typeof ApiBotTurnRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/api/bot/reply'
     | '/api/bot/speak'
     | '/api/bot/status'
+    | '/api/bot/turn'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/api/bot/reply'
     | '/api/bot/speak'
     | '/api/bot/status'
+    | '/api/bot/turn'
   id:
     | '__root__'
     | '/'
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/api/bot/reply'
     | '/api/bot/speak'
     | '/api/bot/status'
+    | '/api/bot/turn'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -193,6 +205,7 @@ export interface RootRouteChildren {
   ApiBotReplyRoute: typeof ApiBotReplyRoute
   ApiBotSpeakRoute: typeof ApiBotSpeakRoute
   ApiBotStatusRoute: typeof ApiBotStatusRoute
+  ApiBotTurnRoute: typeof ApiBotTurnRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -288,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBotStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/bot/turn': {
+      id: '/api/bot/turn'
+      path: '/api/bot/turn'
+      fullPath: '/api/bot/turn'
+      preLoaderRoute: typeof ApiBotTurnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -316,6 +336,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBotReplyRoute: ApiBotReplyRoute,
   ApiBotSpeakRoute: ApiBotSpeakRoute,
   ApiBotStatusRoute: ApiBotStatusRoute,
+  ApiBotTurnRoute: ApiBotTurnRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
