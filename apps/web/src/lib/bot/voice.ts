@@ -4,7 +4,7 @@
 import { track, trackError } from "#/lib/analytics";
 import { speakParts } from "#/lib/speech";
 import { BotError, fetchSpeech } from "./api";
-import { setAudioSession } from "./audioSession";
+import { audioSessionType, setAudioSession } from "./audioSession";
 import { splitLang } from "./segments";
 
 /** In-app volume boost: off for now (see the note in Voice). */
@@ -171,7 +171,12 @@ export class Voice {
 		this.lastFetchMs = 0;
 		await this.fillerDone; // let a "Mm-hm" finish first (it's short)
 		// Loud speaker while Ale talks (the mic is released meanwhile).
-		if (this.switchSession) setAudioSession("playback");
+		// Ask for the loud speaker before EVERY line (iPhones sometimes drop back
+		// to quiet call mode after a few turns), and give it a moment to switch.
+		if (this.switchSession) {
+			setAudioSession("playback");
+			await new Promise((r) => setTimeout(r, 150));
+		}
 		if (this.useServer) {
 			try {
 				try {
@@ -215,7 +220,15 @@ export class Voice {
 					audio
 						.play()
 						.then(() => {
-							if (!started) onStart?.();
+							if (!started) {
+								onStart?.();
+								// What the phone is doing as Ale speaks (for the volume issue).
+								track("voice_line", {
+									session: audioSessionType(),
+									switching: this.switchSession,
+									boosted: audio === this.boosted,
+								});
+							}
 							// Boost engine paused by the phone? Then it's silent:
 							// switch to the plain player right away.
 							if (audio === this.boosted)

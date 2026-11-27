@@ -4,6 +4,16 @@
 
 type SessionType = "auto" | "playback" | "play-and-record";
 
+/** The current iOS audio session type, for diagnostics ("n/a" elsewhere). */
+export function audioSessionType(): string {
+	try {
+		const nav = navigator as Navigator & { audioSession?: { type: string } };
+		return nav.audioSession?.type ?? "n/a";
+	} catch {
+		return "n/a";
+	}
+}
+
 export function setAudioSession(type: SessionType) {
 	try {
 		const nav = navigator as Navigator & {

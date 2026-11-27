@@ -360,11 +360,13 @@ test("'Micrófono siempre abierto' can be turned on and is remembered", async ({
 	await page.getByRole("button", { name: /Pausar/ }).click();
 });
 
-test("✋ Ya terminé sends the turn right away", async ({ page }) => {
+test("✋ Terminé de hablar sends the turn right away", async ({ page }) => {
 	test.setTimeout(60_000);
 	await unlockAle(page);
 	await page.getByRole("button", { name: /Hablar/ }).click();
-	await expect(page.getByRole("button", { name: /Ya terminé/ })).toBeVisible({
+	await expect(
+		page.getByRole("button", { name: /Terminé de hablar/ }),
+	).toBeVisible({
 		timeout: 20_000,
 	});
 	// Tap until the fake mic's beeps have counted as speech (a real learner
@@ -372,7 +374,7 @@ test("✋ Ya terminé sends the turn right away", async ({ page }) => {
 	const heard = page.waitForRequest("**/api/bot/hear", { timeout: 25_000 });
 	for (let i = 0; i < 20; i++) {
 		await page.waitForTimeout(1_000);
-		const btn = page.getByRole("button", { name: /Ya terminé/ });
+		const btn = page.getByRole("button", { name: /Terminé de hablar/ });
 		if (!(await btn.count())) break;
 		await btn.click();
 	}
